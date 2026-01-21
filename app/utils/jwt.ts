@@ -7,7 +7,7 @@ export interface DecodedJWT {
 }
 
 export const SAMPLE_JWT =
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c";
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyIjp7Im5hbWUiOiJKb2huIERvZSIsInJvbGVzIjpbImFkbWluIiwidXNlciJdfSwiaWF0IjoxNTE2MjM5MDIyfQ.test";
 
 function base64UrlDecode(str: string): string {
   // Replace URL-safe characters back to standard Base64

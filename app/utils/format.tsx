@@ -1,54 +1,113 @@
+/**
+ * Recursively formats a JSON value with syntax highlighting.
+ * Handles nested objects, arrays, and all primitive types.
+ */
 export function formatJSON(
-  obj: Record<string, unknown> | null,
-): React.ReactNode[] {
-  if (!obj) return [];
+  value: unknown,
+  depth: number = 0,
+  keyPrefix: string = "root",
+): React.ReactNode {
+  // Handle null
+  if (value === null) {
+    return <span className="json-null">null</span>;
+  }
 
-  console.log(obj);
+  // Handle primitives
+  if (typeof value === "string") {
+    return <span className="json-string">&quot;{value}&quot;</span>;
+  }
 
-  const lines: React.ReactNode[] = [];
-  const entries = Object.entries(obj);
+  if (typeof value === "number") {
+    return <span className="json-number">{value}</span>;
+  }
 
-  lines.push(
-    <span key="open" className="text-foreground">
-      {"{"}
-    </span>,
-  );
+  if (typeof value === "boolean") {
+    return <span className="json-boolean">{value.toString()}</span>;
+  }
 
-  entries.forEach(([key, value], index) => {
-    const isLast = index === entries.length - 1;
-    let valueElement: React.ReactNode;
-
-    if (typeof value === "string") {
-      valueElement = <span className="json-string">&quot;{value}&quot;</span>;
-    } else if (typeof value === "number") {
-      valueElement = <span className="json-number">{value}</span>;
-    } else if (typeof value === "boolean") {
-      valueElement = <span className="json-boolean">{value.toString()}</span>;
-    } else if (value === null) {
-      valueElement = <span className="json-null">null</span>;
-    } else {
-      valueElement = (
-        <span className="text-foreground">{JSON.stringify(value)}</span>
-      );
+  // Handle arrays
+  if (Array.isArray(value)) {
+    if (value.length === 0) {
+      return <span className="text-foreground">[]</span>;
     }
 
-    lines.push(
-      <div key={key} className="pl-4">
-        <span className="json-key">&quot;{key}&quot;</span>
-        <span className="text-foreground">: </span>
-        {valueElement}
-        {!isLast && <span className="text-foreground">,</span>}
-      </div>,
+    return (
+      <span>
+        <span className="text-foreground">[</span>
+        {value.map((item, index) => (
+          <div key={`${keyPrefix}-${index}`} style={{ paddingLeft: "1rem" }}>
+            {formatJSON(item, depth + 1, `${keyPrefix}-${index}`)}
+            {index < value.length - 1 && (
+              <span className="text-foreground">,</span>
+            )}
+          </div>
+        ))}
+        <span className="text-foreground">]</span>
+      </span>
     );
-  });
+  }
 
-  lines.push(
-    <span key="close" className="text-foreground">
-      {"}"}
-    </span>,
-  );
+  // Handle objects
+  if (typeof value === "object") {
+    const entries = Object.entries(value as Record<string, unknown>);
 
-  return lines;
+    // Empty objects render as inline "{}"
+    if (entries.length === 0) {
+      return <span className="text-foreground">{"{}"}</span>;
+    }
+
+    /**
+     * Object Rendering Structure:
+     *
+     * {                              <- Opening brace (no indentation)
+     *   "key": value,                <- Each key-value pair in its own <div>
+     *   "nested": {                  <- Nested objects/arrays are rendered recursively
+     *     "inner": "value"           <- Each level adds more padding via CSS
+     *   }
+     * }                              <- Closing brace (no indentation)
+     *
+     * INDENTATION STRATEGY:
+     * - We use CSS `paddingLeft: "1rem"` on each <div> to create visual indentation
+     * - Since each nested level creates its own <div> with padding, the indentation
+     *   accumulates naturally (1rem -> 2rem -> 3rem as we go deeper)
+     * - This is simpler than calculating string-based indentation with spaces
+     *
+     * REACT KEYS:
+     * - `keyPrefix` ensures unique keys across the entire tree
+     * - e.g., "root-user-roles-0" for the first role in user.roles array
+     * - This prevents React key collisions when the same key name appears at different depths
+     */
+    return (
+      <span>
+        {/* Opening brace */}
+        <span className="text-foreground">{"{"}</span>
+
+        {/* Iterate over each key-value pair */}
+        {entries.map(([key, val], index) => (
+          // Each entry gets its own line with 1rem left padding for indentation
+          <div key={`${keyPrefix}-${key}`} style={{ paddingLeft: "1rem" }}>
+            {/* Key with quotes and syntax highlighting */}
+            <span className="json-key">&quot;{key}&quot;</span>
+            <span className="text-foreground">: </span>
+
+            {/* RECURSIVE CALL: Format the value, incrementing depth and extending keyPrefix */}
+            {formatJSON(val, depth + 1, `${keyPrefix}-${key}`)}
+
+            {/* Add comma after all entries except the last one */}
+            {index < entries.length - 1 && (
+              <span className="text-foreground">,</span>
+            )}
+          </div>
+        ))}
+
+        {/* Closing brace (aligned with parent, not indented) */}
+        <span className="text-foreground">{"}"}</span>
+      </span>
+    );
+  }
+
+  // Fallback for unknown types
+  return <span className="text-foreground">{String(value)}</span>;
 }
 
 const CLAIM_DESCRIPTIONS: Record<string, string> = {
