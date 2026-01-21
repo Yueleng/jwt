@@ -1,6 +1,6 @@
 // JWT utilities
-export { decodeJWT, SAMPLE_JWT } from "./jwt";
-export type { DecodedJWT } from "./jwt";
+export { decodeJWT, verifyJWTSignature, SAMPLE_JWT } from "./jwt";
+export type { DecodedJWT, VerificationResult } from "./jwt";
 
 // Formatting utilities
 export { formatJSON, getClaimDescription, formatTimestamp } from "./format";

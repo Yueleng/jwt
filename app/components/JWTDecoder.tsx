@@ -1,14 +1,43 @@
 "use client";
 
-import { useState, useMemo } from "react";
-import { decodeJWT, SAMPLE_JWT } from "../utils";
+import { useState, useMemo, useEffect } from "react";
+import {
+  decodeJWT,
+  verifyJWTSignature,
+  SAMPLE_JWT,
+  VerificationResult,
+} from "../utils";
 import DecodedSection from "./DecodedSection";
 
 export default function JWTDecoder() {
   const [token, setToken] = useState(SAMPLE_JWT);
   const [copied, setCopied] = useState(false);
+  const [secret, setSecret] = useState("");
+  const [verification, setVerification] = useState<VerificationResult | null>(
+    null,
+  );
+  const [isVerifying, setIsVerifying] = useState(false);
 
   const decoded = useMemo(() => decodeJWT(token), [token]);
+
+  // Verify signature when token or secret changes
+  useEffect(() => {
+    const verify = async () => {
+      if (!secret || !token) {
+        setVerification(null);
+        return;
+      }
+
+      setIsVerifying(true);
+      const result = await verifyJWTSignature(token, secret);
+      setVerification(result);
+      setIsVerifying(false);
+    };
+
+    // Debounce verification
+    const timeoutId = setTimeout(verify, 300);
+    return () => clearTimeout(timeoutId);
+  }, [token, secret]);
 
   const handleCopy = async () => {
     await navigator.clipboard.writeText(token);
@@ -42,6 +71,19 @@ export default function JWTDecoder() {
             </p>
           </div>
           <div className="flex items-center gap-2">
+            {/* Signature verification badge */}
+            {verification && (
+              <span
+                className={`px-3 py-1 rounded-full text-sm font-medium ${
+                  verification.verified ? "badge-success" : "badge-error"
+                }`}
+              >
+                {verification.verified
+                  ? "✓ Signature Verified"
+                  : "✗ Invalid Signature"}
+              </span>
+            )}
+            {/* JWT structure badge */}
             {decoded?.isValid ? (
               <span className="badge-success px-3 py-1 rounded-full text-sm font-medium">
                 ✓ Valid JWT
@@ -176,15 +218,37 @@ export default function JWTDecoder() {
 
           {/* Signature Section */}
           <div className="glass rounded-xl overflow-hidden animate-fade-in">
-            <div className="flex items-center gap-3 px-4 py-3 border-b border-[var(--border-color)]">
-              <div className="w-3 h-3 rounded-full bg-[var(--signature-color)]" />
-              <div>
-                <h3 className="font-semibold jwt-signature">Signature</h3>
-                <p className="text-xs text-[var(--muted)]">VERIFY SIGNATURE</p>
+            <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--border-color)]">
+              <div className="flex items-center gap-3">
+                <div className="w-3 h-3 rounded-full bg-[var(--signature-color)]" />
+                <div>
+                  <h3 className="font-semibold jwt-signature">Signature</h3>
+                  <p className="text-xs text-[var(--muted)]">
+                    VERIFY SIGNATURE
+                  </p>
+                </div>
               </div>
+              {/* Verification status indicator */}
+              {verification && !isVerifying && (
+                <span
+                  className={`text-xs px-2 py-1 rounded ${
+                    verification.verified
+                      ? "bg-[var(--success-color)]/20 text-[var(--success-color)]"
+                      : "bg-[var(--error-color)]/20 text-[var(--error-color)]"
+                  }`}
+                >
+                  {verification.verified ? "✓ Verified" : "✗ Invalid"}
+                </span>
+              )}
+              {isVerifying && (
+                <span className="text-xs text-[var(--muted)] animate-pulse-subtle">
+                  Verifying...
+                </span>
+              )}
             </div>
 
             <div className="p-4 space-y-4">
+              {/* Signature display */}
               <div className="font-mono text-sm p-3 bg-[var(--background)] rounded-lg border border-[var(--border-color)] break-all">
                 {decoded?.signature || (
                   <span className="text-[var(--muted)] italic">
@@ -193,6 +257,61 @@ export default function JWTDecoder() {
                 )}
               </div>
 
+              {/* Secret input for verification */}
+              <div className="space-y-2">
+                <label className="text-sm text-[var(--muted)] block">
+                  Enter secret to verify signature:
+                </label>
+                <input
+                  type="text"
+                  value={secret}
+                  onChange={(e) => setSecret(e.target.value)}
+                  placeholder="your-256-bit-secret"
+                  className="w-full bg-[var(--background)] border border-[var(--border-color)] rounded-lg px-4 py-2 font-mono text-sm focus:outline-none focus:border-[var(--signature-color)] transition-colors"
+                  spellCheck={false}
+                />
+              </div>
+
+              {/* Verification result message */}
+              {verification && !isVerifying && (
+                <div
+                  className={`p-3 rounded-lg border ${
+                    verification.verified
+                      ? "bg-[var(--success-color)]/10 border-[var(--success-color)]/30"
+                      : "bg-[var(--error-color)]/10 border-[var(--error-color)]/30"
+                  }`}
+                >
+                  <div className="flex items-center gap-2">
+                    <span
+                      className={
+                        verification.verified
+                          ? "text-[var(--success-color)]"
+                          : "text-[var(--error-color)]"
+                      }
+                    >
+                      {verification.verified ? "✓" : "✗"}
+                    </span>
+                    <span
+                      className={`text-sm font-medium ${
+                        verification.verified
+                          ? "text-[var(--success-color)]"
+                          : "text-[var(--error-color)]"
+                      }`}
+                    >
+                      {verification.verified
+                        ? "Signature Verified"
+                        : "Signature Verification Failed"}
+                    </span>
+                  </div>
+                  {verification.error && !verification.verified && (
+                    <p className="text-xs text-[var(--muted)] mt-1">
+                      {verification.error}
+                    </p>
+                  )}
+                </div>
+              )}
+
+              {/* Algorithm info */}
               <div className="p-4 rounded-lg bg-[var(--background)] border border-[var(--border-color)]">
                 <p className="text-sm text-[var(--muted)] mb-3">
                   The signature is used to verify that the sender of the JWT is
@@ -204,6 +323,13 @@ export default function JWTDecoder() {
                   <span className="px-2 py-1 rounded bg-[var(--border-color)] font-mono">
                     {(decoded?.header?.alg as string) || "Unknown"}
                   </span>
+                  {decoded?.header?.alg === "HS256" ? (
+                    <span className="text-[var(--success-color)]">
+                      ✓ Supported
+                    </span>
+                  ) : decoded?.header?.alg ? (
+                    <span className="text-[var(--muted)]">Not supported</span>
+                  ) : null}
                 </div>
               </div>
             </div>
