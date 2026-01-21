@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useMemo } from "react";
 
 interface DecodedJWT {
   header: Record<string, unknown> | null;
@@ -260,17 +260,9 @@ function DecodedSection({
 
 export default function JWTDecoder() {
   const [token, setToken] = useState(SAMPLE_JWT);
-  const [decoded, setDecoded] = useState<DecodedJWT | null>(null);
   const [copied, setCopied] = useState(false);
 
-  const handleDecode = useCallback(() => {
-    const result = decodeJWT(token);
-    setDecoded(result);
-  }, [token]);
-
-  useEffect(() => {
-    handleDecode();
-  }, [handleDecode]);
+  const decoded = useMemo(() => decodeJWT(token), [token]);
 
   const handleCopy = async () => {
     await navigator.clipboard.writeText(token);
@@ -280,7 +272,6 @@ export default function JWTDecoder() {
 
   const handleClear = () => {
     setToken("");
-    setDecoded(null);
   };
 
   const handleLoadSample = () => {
@@ -326,6 +317,7 @@ export default function JWTDecoder() {
       <main className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Left Column - Encoded */}
         <div className="space-y-4">
+          {/* Encoded Token Card */}
           <div className="glass rounded-xl overflow-hidden">
             <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--border-color)]">
               <h2 className="font-semibold">Encoded Token</h2>
@@ -362,7 +354,7 @@ export default function JWTDecoder() {
             </div>
           </div>
 
-          {/* Color-coded preview */}
+          {/* Color-coded token preview card */}
           {token && (
             <div className="glass rounded-xl p-4 overflow-hidden">
               <h3 className="text-sm font-medium text-[var(--muted)] mb-3">
@@ -400,7 +392,7 @@ export default function JWTDecoder() {
             </div>
           )}
 
-          {/* Error display */}
+          {/* Error display Card*/}
           {decoded?.error && (
             <div className="glass rounded-xl p-4 border-l-4 border-[var(--error-color)] animate-fade-in">
               <div className="flex items-start gap-3">
