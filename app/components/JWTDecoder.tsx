@@ -6,14 +6,33 @@ import {
   verifyJWTSignature,
   SAMPLE_JWT,
   VerificationResult,
+  ALGORITHM_INFO,
+  SUPPORTED_ALGORITHMS,
+  SupportedAlgorithm,
 } from "../utils";
 import DecodedSection from "./DecodedSection";
 import Navigation from "./Navigation";
 
+// Sample public keys for testing (NOT for production use!)
+const SAMPLE_RSA_PUBLIC_KEY = `-----BEGIN PUBLIC KEY-----
+MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAu6OSAwCFarM+mg6gNeSY
+TH0MY9KFS0VTzOx/Bv2HKz+8UuiupDKkKlqh9w2PWGNzPcmQglJtAO1UnLWV4X9C
+TabwlsTqr8WcUIxr8xjDfQ+z5zR9eG4G7a42fAinkNi8VRXa5ART9NHBVpE/ctFZ
+l7yPE5lmcaibe090dJDQTQX5/VzFQWXZ3/YBPZhsVAbzU6nUYizbqmGGSb1xfUZl
+6+0C9GxfMclRr0D+0IBPUb5FkUZf1V+gRzap/fBNxfDp4yzy1WD5rDJNKesql6iR
+dwuUv+lSB1fuklxC6gPGL1pfccKlscBd0K+xdSdBYGSd8SvLsgyx/a6ij3/C/Vux
+lwIDAQAB
+-----END PUBLIC KEY-----`;
+
+const SAMPLE_EC_PUBLIC_KEY = `-----BEGIN PUBLIC KEY-----
+MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEEVs/o5+uQbTjL3chynL4wXgUg2R9
+q9UU8I5mEovUf86QZ7kOBIjJwqnzD1omaweEHWwHdBO6B+dFabmdT9POxg==
+-----END PUBLIC KEY-----`;
+
 export default function JWTDecoder() {
   const [token, setToken] = useState(SAMPLE_JWT);
   const [copied, setCopied] = useState(false);
-  const [secret, setSecret] = useState("");
+  const [key, setKey] = useState("");
   const [verification, setVerification] = useState<VerificationResult | null>(
     null,
   );
@@ -21,16 +40,40 @@ export default function JWTDecoder() {
 
   const decoded = useMemo(() => decodeJWT(token), [token]);
 
-  // Verify signature when token or secret changes
+  // Detect algorithm from decoded token header
+  const detectedAlgorithm = useMemo(() => {
+    const alg = decoded?.header?.alg as string | undefined;
+    if (alg && SUPPORTED_ALGORITHMS.includes(alg as SupportedAlgorithm)) {
+      return alg as SupportedAlgorithm;
+    }
+    return null;
+  }, [decoded]);
+
+  const isSymmetric = detectedAlgorithm
+    ? ALGORITHM_INFO[detectedAlgorithm].keyType === "symmetric"
+    : true;
+
+  // Handle loading sample key based on algorithm
+  const handleLoadSampleKey = () => {
+    if (detectedAlgorithm === "RS256") {
+      setKey(SAMPLE_RSA_PUBLIC_KEY);
+    } else if (detectedAlgorithm === "ES256") {
+      setKey(SAMPLE_EC_PUBLIC_KEY);
+    } else {
+      setKey("your-256-bit-secret");
+    }
+  };
+
+  // Verify signature when token or key changes
   useEffect(() => {
     const verify = async () => {
-      if (!secret || !token) {
+      if (!key || !token) {
         setVerification(null);
         return;
       }
 
       setIsVerifying(true);
-      const result = await verifyJWTSignature(token, secret);
+      const result = await verifyJWTSignature(token, key);
       setVerification(result);
       setIsVerifying(false);
     };
@@ -38,7 +81,7 @@ export default function JWTDecoder() {
     // Debounce verification
     const timeoutId = setTimeout(verify, 300);
     return () => clearTimeout(timeoutId);
-  }, [token, secret]);
+  }, [token, key]);
 
   const handleCopy = async () => {
     await navigator.clipboard.writeText(token);
@@ -48,10 +91,14 @@ export default function JWTDecoder() {
 
   const handleClear = () => {
     setToken("");
+    setKey("");
+    setVerification(null);
   };
 
   const handleLoadSample = () => {
     setToken(SAMPLE_JWT);
+    setKey("");
+    setVerification(null);
   };
 
   // Split token into colored parts for display
@@ -259,19 +306,39 @@ export default function JWTDecoder() {
                 )}
               </div>
 
-              {/* Secret input for verification */}
+              {/* Key input for verification */}
               <div className="space-y-2">
-                <label className="text-sm text-[var(--muted)] block">
-                  Enter secret to verify signature:
-                </label>
-                <input
-                  type="text"
-                  value={secret}
-                  onChange={(e) => setSecret(e.target.value)}
-                  placeholder="your-256-bit-secret"
-                  className="w-full bg-[var(--background)] border border-[var(--border-color)] rounded-lg px-4 py-2 font-mono text-sm focus:outline-none focus:border-[var(--signature-color)] transition-colors"
-                  spellCheck={false}
-                />
+                <div className="flex items-center justify-between">
+                  <label className="text-sm text-[var(--muted)] block">
+                    {isSymmetric
+                      ? "Enter secret to verify signature:"
+                      : "Enter public key (PEM format) to verify signature:"}
+                  </label>
+                  <button
+                    onClick={handleLoadSampleKey}
+                    className="text-xs px-2 py-1 rounded bg-[var(--border-color)] hover:bg-[var(--muted)] transition-colors"
+                  >
+                    Load Sample
+                  </button>
+                </div>
+                {isSymmetric ? (
+                  <input
+                    type="text"
+                    value={key}
+                    onChange={(e) => setKey(e.target.value)}
+                    placeholder="your-256-bit-secret"
+                    className="w-full bg-[var(--background)] border border-[var(--border-color)] rounded-lg px-4 py-2 font-mono text-sm focus:outline-none focus:border-[var(--signature-color)] transition-colors"
+                    spellCheck={false}
+                  />
+                ) : (
+                  <textarea
+                    value={key}
+                    onChange={(e) => setKey(e.target.value)}
+                    placeholder="-----BEGIN PUBLIC KEY-----&#10;...&#10;-----END PUBLIC KEY-----"
+                    className="w-full h-24 bg-[var(--background)] border border-[var(--border-color)] rounded-lg p-3 font-mono text-xs resize-none focus:outline-none focus:border-[var(--signature-color)] transition-colors"
+                    spellCheck={false}
+                  />
+                )}
               </div>
 
               {/* Verification result message */}
@@ -320,18 +387,43 @@ export default function JWTDecoder() {
                   who it says it is and to ensure that the message wasn&apos;t
                   changed along the way.
                 </p>
-                <div className="flex items-center gap-2 text-xs">
-                  <span className="text-[var(--muted)]">Algorithm:</span>
-                  <span className="px-2 py-1 rounded bg-[var(--border-color)] font-mono">
+                <div className="flex flex-wrap items-center gap-2 text-xs">
+                  <span className="text-[var(--muted)]">Detected:</span>
+                  <span
+                    className={`px-2 py-1 rounded font-mono ${
+                      detectedAlgorithm
+                        ? "bg-[var(--signature-color)] text-white"
+                        : "bg-[var(--border-color)]"
+                    }`}
+                  >
                     {(decoded?.header?.alg as string) || "Unknown"}
                   </span>
-                  {decoded?.header?.alg === "HS256" ? (
+                  {detectedAlgorithm && (
                     <span className="text-[var(--success-color)]">
                       ✓ Supported
                     </span>
-                  ) : decoded?.header?.alg ? (
-                    <span className="text-[var(--muted)]">Not supported</span>
-                  ) : null}
+                  )}
+                  {typeof decoded?.header?.alg === "string" &&
+                    !detectedAlgorithm && (
+                      <span className="text-[var(--error-color)]">
+                        ✗ Not supported
+                      </span>
+                    )}
+                </div>
+                <div className="flex flex-wrap items-center gap-2 text-xs mt-2">
+                  <span className="text-[var(--muted)]">All supported:</span>
+                  {SUPPORTED_ALGORITHMS.map((alg) => (
+                    <span
+                      key={alg}
+                      className={`px-2 py-1 rounded font-mono ${
+                        detectedAlgorithm === alg
+                          ? "bg-[var(--signature-color)] text-white"
+                          : "bg-[var(--border-color)]"
+                      }`}
+                    >
+                      {alg}
+                    </span>
+                  ))}
                 </div>
               </div>
             </div>
