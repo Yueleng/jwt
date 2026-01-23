@@ -9,17 +9,20 @@ A modern, client-side JSON Web Token (JWT) decoder and inspector built with Next
 ## Features
 
 ### Token Decoding
+
 - **Instant Decoding** - Decode JWT headers and payloads in real-time as you type
 - **Syntax Highlighted JSON** - Beautiful, color-coded JSON display with proper indentation
 - **Structure Visualization** - Color-coded token preview showing header, payload, and signature sections
 - **Validation** - Automatic JWT structure validation with clear error messages
 
 ### Signature Verification
+
 - **HS256 Support** - Verify HMAC-SHA256 signatures using your secret key
 - **Real-time Verification** - Debounced verification that updates as you type
 - **Visual Indicators** - Clear status badges showing verification state
 
 ### User Experience
+
 - **Dual View Modes** - Toggle between raw JSON and human-readable claims view
 - **Timestamp Formatting** - Automatic conversion of Unix timestamps to readable dates
 - **Claim Descriptions** - Built-in descriptions for standard JWT claims (iss, sub, exp, etc.)
@@ -28,6 +31,7 @@ A modern, client-side JSON Web Token (JWT) decoder and inspector built with Next
 - **Responsive Design** - Works seamlessly on desktop and mobile devices
 
 ### Privacy & Security
+
 - **100% Client-Side** - All processing happens in your browser
 - **No Data Transmission** - Your tokens and secrets never leave your device
 - **Web Crypto API** - Uses native browser cryptography for signature verification
@@ -51,7 +55,7 @@ A modern, client-side JSON Web Token (JWT) decoder and inspector built with Next
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/jwt.git
+git clone https://github.com/Yueleng/jwt.git
 cd jwt
 
 # Install dependencies
@@ -119,10 +123,10 @@ const result = await verifyJWTSignature(token, secret);
 
 ## Supported Algorithms
 
-| Algorithm | Support |
-|-----------|---------|
-| HS256 (HMAC-SHA256) | ✅ Supported |
-| RS256 (RSA-SHA256) | ❌ Not supported |
+| Algorithm            | Support          |
+| -------------------- | ---------------- |
+| HS256 (HMAC-SHA256)  | ✅ Supported     |
+| RS256 (RSA-SHA256)   | ❌ Not supported |
 | ES256 (ECDSA-SHA256) | ❌ Not supported |
 
 ## License
