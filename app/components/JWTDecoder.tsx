@@ -8,6 +8,7 @@ import {
   VerificationResult,
 } from "../utils";
 import DecodedSection from "./DecodedSection";
+import Navigation from "./Navigation";
 
 export default function JWTDecoder() {
   const [token, setToken] = useState(SAMPLE_JWT);
@@ -70,34 +71,35 @@ export default function JWTDecoder() {
               Decode, inspect, and understand JSON Web Tokens
             </p>
           </div>
-          <div className="flex items-center gap-2">
-            {/* Signature verification badge */}
-            {verification && (
-              <span
-                className={`px-3 py-1 rounded-full text-sm font-medium ${
-                  verification.verified ? "badge-success" : "badge-error"
-                }`}
-              >
-                {verification.verified
-                  ? "✓ Signature Verified"
-                  : "✗ Invalid Signature"}
-              </span>
-            )}
-            {/* JWT structure badge */}
-            {decoded?.isValid ? (
-              <span className="badge-success px-3 py-1 rounded-full text-sm font-medium">
-                ✓ Valid JWT
-              </span>
-            ) : decoded?.error ? (
-              <span className="badge-error px-3 py-1 rounded-full text-sm font-medium">
-                ✗ Invalid
-              </span>
-            ) : (
-              <span className="badge-neutral px-3 py-1 rounded-full text-sm font-medium">
-                Waiting...
-              </span>
-            )}
-          </div>
+          <Navigation />
+        </div>
+        <div className="flex items-center gap-2 mt-4">
+          {/* Signature verification badge */}
+          {verification && (
+            <span
+              className={`px-3 py-1 rounded-full text-sm font-medium ${
+                verification.verified ? "badge-success" : "badge-error"
+              }`}
+            >
+              {verification.verified
+                ? "✓ Signature Verified"
+                : "✗ Invalid Signature"}
+            </span>
+          )}
+          {/* JWT structure badge */}
+          {decoded?.isValid ? (
+            <span className="badge-success px-3 py-1 rounded-full text-sm font-medium">
+              ✓ Valid JWT
+            </span>
+          ) : decoded?.error ? (
+            <span className="badge-error px-3 py-1 rounded-full text-sm font-medium">
+              ✗ Invalid
+            </span>
+          ) : (
+            <span className="badge-neutral px-3 py-1 rounded-full text-sm font-medium">
+              Waiting...
+            </span>
+          )}
         </div>
       </header>
 
