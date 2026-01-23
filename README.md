@@ -1,6 +1,6 @@
-# JWT Decoder
+# JWT Toolbox
 
-A modern, client-side JSON Web Token (JWT) decoder and inspector built with Next.js, React, and TypeScript. Decode, inspect, and verify JWT tokens instantly in your browser with a beautiful dark-themed interface.
+A modern, client-side JSON Web Token (JWT) encoder and decoder built with Next.js, React, and TypeScript. Create, decode, inspect, and verify JWT tokens instantly in your browser with a beautiful dark-themed interface.
 
 ![JWT Decoder](https://img.shields.io/badge/Next.js-16-black?style=flat-square&logo=next.js)
 ![React](https://img.shields.io/badge/React-19-blue?style=flat-square&logo=react)
@@ -21,8 +21,17 @@ A modern, client-side JSON Web Token (JWT) decoder and inspector built with Next
 - **Real-time Verification** - Debounced verification that updates as you type
 - **Visual Indicators** - Clear status badges showing verification state
 
+### Token Encoding
+
+- **Create JWTs** - Build custom JWT tokens with header and payload editors
+- **JSON Validation** - Real-time JSON parsing with clear error messages
+- **Quick Timestamps** - One-click buttons to add `iat` (issued at) and `exp` (expiration) claims
+- **Live Preview** - See your token generated instantly as you type
+- **Token Structure** - Color-coded preview showing header, payload, and signature sections
+
 ### User Experience
 
+- **Navigation** - Seamless switching between Encoder and Decoder pages
 - **Dual View Modes** - Toggle between raw JSON and human-readable claims view
 - **Timestamp Formatting** - Automatic conversion of Unix timestamps to readable dates
 - **Claim Descriptions** - Built-in descriptions for standard JWT claims (iss, sub, exp, etc.)
@@ -88,14 +97,18 @@ jwt/
 ├── app/
 │   ├── components/
 │   │   ├── JWTDecoder.tsx    # Main decoder component with state management
-│   │   └── DecodedSection.tsx # Reusable section for header/payload display
+│   │   ├── JWTEncoder.tsx    # Encoder component for token creation
+│   │   ├── DecodedSection.tsx # Reusable section for header/payload display
+│   │   └── Navigation.tsx    # Nav component for page switching
 │   ├── utils/
-│   │   ├── jwt.ts            # JWT decoding and verification functions
+│   │   ├── jwt.ts            # JWT encoding/decoding and verification functions
 │   │   ├── format.tsx        # JSON formatting and claim descriptions
 │   │   └── index.ts          # Utility exports
+│   ├── encode/
+│   │   └── page.tsx          # Encoder page
 │   ├── globals.css           # Global styles with CSS custom properties
 │   ├── layout.tsx            # Root layout
-│   └── page.tsx              # Home page
+│   └── page.tsx              # Home page (decoder)
 ├── public/                   # Static assets
 ├── package.json
 └── tsconfig.json
@@ -119,6 +132,19 @@ Verifies the signature of an HS256-encoded JWT.
 ```typescript
 const result = await verifyJWTSignature(token, secret);
 // Returns: { verified: boolean, error?: string, algorithm?: string }
+```
+
+### `encodeJWT(header: object, payload: object, secret: string): Promise<EncodeResult>`
+
+Creates and signs a JWT token with HS256 algorithm.
+
+```typescript
+const result = await encodeJWT(
+  { alg: "HS256", typ: "JWT" },
+  { sub: "1234567890", name: "John Doe" },
+  "your-secret"
+);
+// Returns: { token: string, error?: string }
 ```
 
 ## Supported Algorithms
