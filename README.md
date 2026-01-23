@@ -1,36 +1,134 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# JWT Decoder
+
+A modern, client-side JSON Web Token (JWT) decoder and inspector built with Next.js, React, and TypeScript. Decode, inspect, and verify JWT tokens instantly in your browser with a beautiful dark-themed interface.
+
+![JWT Decoder](https://img.shields.io/badge/Next.js-16-black?style=flat-square&logo=next.js)
+![React](https://img.shields.io/badge/React-19-blue?style=flat-square&logo=react)
+![TypeScript](https://img.shields.io/badge/TypeScript-5-blue?style=flat-square&logo=typescript)
+
+## Features
+
+### Token Decoding
+- **Instant Decoding** - Decode JWT headers and payloads in real-time as you type
+- **Syntax Highlighted JSON** - Beautiful, color-coded JSON display with proper indentation
+- **Structure Visualization** - Color-coded token preview showing header, payload, and signature sections
+- **Validation** - Automatic JWT structure validation with clear error messages
+
+### Signature Verification
+- **HS256 Support** - Verify HMAC-SHA256 signatures using your secret key
+- **Real-time Verification** - Debounced verification that updates as you type
+- **Visual Indicators** - Clear status badges showing verification state
+
+### User Experience
+- **Dual View Modes** - Toggle between raw JSON and human-readable claims view
+- **Timestamp Formatting** - Automatic conversion of Unix timestamps to readable dates
+- **Claim Descriptions** - Built-in descriptions for standard JWT claims (iss, sub, exp, etc.)
+- **Sample Token** - Load a sample JWT to explore the tool's features
+- **Copy/Clear Actions** - Quick buttons to copy token to clipboard or clear input
+- **Responsive Design** - Works seamlessly on desktop and mobile devices
+
+### Privacy & Security
+- **100% Client-Side** - All processing happens in your browser
+- **No Data Transmission** - Your tokens and secrets never leave your device
+- **Web Crypto API** - Uses native browser cryptography for signature verification
+
+## Tech Stack
+
+- **Framework**: [Next.js 16](https://nextjs.org) with App Router
+- **UI Library**: [React 19](https://react.dev)
+- **Language**: [TypeScript 5](https://www.typescriptlang.org)
+- **Styling**: [Tailwind CSS 4](https://tailwindcss.com) with custom glassmorphic design
+- **Cryptography**: Native [Web Crypto API](https://developer.mozilla.org/en-US/docs/Web/API/Web_Crypto_API)
 
 ## Getting Started
 
-First, run the development server:
+### Prerequisites
+
+- Node.js 18+
+- npm, yarn, pnpm, or bun
+
+### Installation
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+# Clone the repository
+git clone https://github.com/yourusername/jwt.git
+cd jwt
+
+# Install dependencies
+npm install
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### Development
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+# Run the development server
+npm run dev
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Open [http://localhost:3000](http://localhost:3000) in your browser.
 
-## Learn More
+### Build
 
-To learn more about Next.js, take a look at the following resources:
+```bash
+# Create a production build
+npm run build
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+# Start the production server
+npm start
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Project Structure
 
-## Deploy on Vercel
+```
+jwt/
+├── app/
+│   ├── components/
+│   │   ├── JWTDecoder.tsx    # Main decoder component with state management
+│   │   └── DecodedSection.tsx # Reusable section for header/payload display
+│   ├── utils/
+│   │   ├── jwt.ts            # JWT decoding and verification functions
+│   │   ├── format.tsx        # JSON formatting and claim descriptions
+│   │   └── index.ts          # Utility exports
+│   ├── globals.css           # Global styles with CSS custom properties
+│   ├── layout.tsx            # Root layout
+│   └── page.tsx              # Home page
+├── public/                   # Static assets
+├── package.json
+└── tsconfig.json
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Key APIs
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+### `decodeJWT(token: string): DecodedJWT`
+
+Decodes a JWT token and returns its header, payload, and signature.
+
+```typescript
+const result = decodeJWT(token);
+// Returns: { header: {...}, payload: {...}, signature: "...", isValid: true }
+```
+
+### `verifyJWTSignature(token: string, secret: string): Promise<VerificationResult>`
+
+Verifies the signature of an HS256-encoded JWT.
+
+```typescript
+const result = await verifyJWTSignature(token, secret);
+// Returns: { verified: boolean, error?: string, algorithm?: string }
+```
+
+## Supported Algorithms
+
+| Algorithm | Support |
+|-----------|---------|
+| HS256 (HMAC-SHA256) | ✅ Supported |
+| RS256 (RSA-SHA256) | ❌ Not supported |
+| ES256 (ECDSA-SHA256) | ❌ Not supported |
+
+## License
+
+MIT
+
+## Acknowledgments
+
+Inspired by [jwt.io](https://jwt.io) - the industry standard JWT debugger.
