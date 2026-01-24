@@ -5,6 +5,8 @@ import {
   decodeJWT,
   verifyJWTSignature,
   SAMPLE_JWT,
+  SAMPLE_RSA_PUBLIC_KEY,
+  SAMPLE_EC_PUBLIC_KEY,
   VerificationResult,
   ALGORITHM_INFO,
   SUPPORTED_ALGORITHMS,
@@ -13,25 +15,13 @@ import {
 import DecodedSection from "./DecodedSection";
 import Navigation from "./Navigation";
 
-// Sample public keys for testing (NOT for production use!)
-const SAMPLE_RSA_PUBLIC_KEY = `-----BEGIN PUBLIC KEY-----
-MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAu6OSAwCFarM+mg6gNeSY
-TH0MY9KFS0VTzOx/Bv2HKz+8UuiupDKkKlqh9w2PWGNzPcmQglJtAO1UnLWV4X9C
-TabwlsTqr8WcUIxr8xjDfQ+z5zR9eG4G7a42fAinkNi8VRXa5ART9NHBVpE/ctFZ
-l7yPE5lmcaibe090dJDQTQX5/VzFQWXZ3/YBPZhsVAbzU6nUYizbqmGGSb1xfUZl
-6+0C9GxfMclRr0D+0IBPUb5FkUZf1V+gRzap/fBNxfDp4yzy1WD5rDJNKesql6iR
-dwuUv+lSB1fuklxC6gPGL1pfccKlscBd0K+xdSdBYGSd8SvLsgyx/a6ij3/C/Vux
-lwIDAQAB
------END PUBLIC KEY-----`;
-
-const SAMPLE_EC_PUBLIC_KEY = `-----BEGIN PUBLIC KEY-----
-MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEEVs/o5+uQbTjL3chynL4wXgUg2R9
-q9UU8I5mEovUf86QZ7kOBIjJwqnzD1omaweEHWwHdBO6B+dFabmdT9POxg==
------END PUBLIC KEY-----`;
-
 export default function JWTDecoder() {
   const [token, setToken] = useState(SAMPLE_JWT);
   const [copied, setCopied] = useState(false);
+
+  // key for signature verification, for RS256 and ES256, this is a public key
+  // and RS256 and ES256 use a private key to sign the token
+  // for HS256, this is also a secret key which is shared between encoder and decoder
   const [key, setKey] = useState("");
   const [verification, setVerification] = useState<VerificationResult | null>(
     null,

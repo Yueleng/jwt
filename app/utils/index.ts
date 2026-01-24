@@ -1,18 +1,31 @@
-// JWT utilities
+// Sample constants
+export {
+  SAMPLE_JWT,
+  SAMPLE_RSA_PUBLIC_KEY,
+  SAMPLE_EC_PUBLIC_KEY,
+  SAMPLE_RSA_PRIVATE_KEY,
+  SAMPLE_EC_PRIVATE_KEY,
+} from "./sample";
+
+// Decode utilities
 export {
   decodeJWT,
-  verifyJWTSignature,
+  base64UrlToUint8Array,
+} from "./decode";
+export type { DecodedJWT } from "./decode";
+
+// Encode utilities
+export {
   encodeJWT,
-  SAMPLE_JWT,
+  verifyJWTSignature,
   SUPPORTED_ALGORITHMS,
   ALGORITHM_INFO,
-} from "./jwt";
+} from "./encode";
 export type {
-  DecodedJWT,
   VerificationResult,
   EncodeResult,
   SupportedAlgorithm,
-} from "./jwt";
+} from "./encode";
 
 // Formatting utilities
 export { formatJSON, getClaimDescription, formatTimestamp } from "./format";

@@ -1,13 +1,4 @@
-export interface DecodedJWT {
-  header: Record<string, unknown> | null;
-  payload: Record<string, unknown> | null;
-  signature: string;
-  isValid: boolean;
-  error?: string;
-}
-
-export const SAMPLE_JWT =
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c";
+import { base64UrlToUint8Array } from "./decode";
 
 /**
  * Supported JWT signing algorithms
@@ -44,53 +35,11 @@ export const ALGORITHM_INFO: Record<
   },
 };
 
-function base64UrlDecode(str: string): string {
-  // Replace URL-safe characters back to standard Base64
-  let base64 = str.replace(/-/g, "+").replace(/_/g, "/");
-
-  // Add padding if needed
-  const padding = base64.length % 4;
-  if (padding) {
-    base64 += "=".repeat(4 - padding);
-  }
-
-  try {
-    return decodeURIComponent(
-      atob(base64)
-        .split("")
-        .map((c) => "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2))
-        .join(""),
-    );
-  } catch {
-    throw new Error("Invalid Base64 encoding");
-  }
-}
-
-/**
- * Converts a base64url string to a Uint8Array
- */
-function base64UrlToUint8Array(base64url: string): Uint8Array<ArrayBuffer> {
-  // Replace URL-safe characters back to standard Base64
-  let base64 = base64url.replace(/-/g, "+").replace(/_/g, "/");
-  // Add padding if needed
-  const padding = base64.length % 4;
-  if (padding) {
-    base64 += "=".repeat(4 - padding);
-  }
-  const binary = atob(base64);
-  const buffer = new ArrayBuffer(binary.length);
-  const bytes = new Uint8Array(buffer);
-  for (let i = 0; i < binary.length; i++) {
-    bytes[i] = binary.charCodeAt(i);
-  }
-  return bytes;
-}
-
 /**
  * Strips PEM headers and decodes the base64 content
  */
 function pemToArrayBuffer(pem: string): ArrayBuffer {
-  // Remove PEM headers, footers, and whitespace in between
+  // Remove PEM headers, footers, and whitespace
   const base64 = pem
     .replace(/-----BEGIN [\w\s]+-----/g, "")
     .replace(/-----END [\w\s]+-----/g, "")
@@ -258,52 +207,13 @@ function rawToDer(rawSignature: Uint8Array): ArrayBuffer {
   return der.buffer;
 }
 
-export function decodeJWT(token: string): DecodedJWT {
-  const result: DecodedJWT = {
-    header: null,
-    payload: null,
-    signature: "",
-    isValid: false,
-  };
-
-  if (!token || !token.trim()) {
-    return { ...result, error: "No token provided" };
-  }
-
-  const parts = token.trim().split(".");
-
-  if (parts.length !== 3) {
-    return {
-      ...result,
-      error: `Invalid JWT structure. Expected 3 parts, got ${parts.length}`,
-    };
-  }
-
-  try {
-    // Decode header
-    const headerJson = base64UrlDecode(parts[0]);
-    result.header = JSON.parse(headerJson);
-  } catch (e) {
-    return { ...result, error: `Invalid header: ${(e as Error).message}` };
-  }
-
-  try {
-    // Decode payload
-    const payloadJson = base64UrlDecode(parts[1]);
-    result.payload = JSON.parse(payloadJson);
-  } catch (e) {
-    return { ...result, error: `Invalid payload: ${(e as Error).message}` };
-  }
-
-  // Store the signature (base64url encoded)
-  result.signature = parts[2];
-  result.isValid = true;
-
-  return result;
-}
-
 /**
- * Converts a Uint8Array to a base64url string
+ * Converts a Uint8Array to a base64url string.
+ * Base64url is a URL-safe variant of Base64 that uses - instead of + and _ instead of /,
+ * and omits padding (= characters).
+ *
+ * @param bytes - The byte array to convert
+ * @returns The base64url encoded string
  */
 function uint8ArrayToBase64Url(bytes: Uint8Array): string {
   let binary = "";
@@ -318,7 +228,10 @@ function uint8ArrayToBase64Url(bytes: Uint8Array): string {
 }
 
 /**
- * Encodes a string to base64url format (URL-safe base64 without padding)
+ * Encodes a string to base64url format.
+ *
+ * @param str - The string to encode
+ * @returns The base64url encoded string
  */
 function base64UrlEncode(str: string): string {
   // Convert string to UTF-8 bytes, then to base64
