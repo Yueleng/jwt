@@ -19,7 +19,9 @@ This is a client-side JWT toolbox (encoder + decoder) built with Next.js App Rou
 
 | File | Purpose |
 |------|---------|
-| `app/utils/jwt.ts` | Core JWT encoding, decoding, and signature verification (HS256, RS256, ES256) using Web Crypto API |
+| `app/utils/decode.ts` | JWT decoding functions and base64url utilities |
+| `app/utils/encode.ts` | JWT encoding and signature verification (HS256, RS256, ES256) using Web Crypto API |
+| `app/utils/sample.ts` | Sample JWT and matching RSA/EC key pairs for testing |
 | `app/utils/format.tsx` | Recursive JSON syntax highlighting formatter, claim descriptions, timestamp formatting |
 | `app/utils/index.ts` | Re-exports all utilities |
 | `app/components/JWTDecoder.tsx` | Decoder component - manages token state, decoding, and signature verification |
@@ -61,14 +63,14 @@ Components use the `.glass` class for the translucent card effect and `.gradient
 
 ### Sample JWT
 
-The sample token (`SAMPLE_JWT` in `jwt.ts`) is the standard jwt.io example:
+The sample token (`SAMPLE_JWT` in `sample.ts`) is the standard jwt.io example:
 - Header: `{"alg":"HS256","typ":"JWT"}`
 - Payload: `{"sub":"1234567890","name":"John Doe","iat":1516239022}`
 - Secret: `"secret"`
 
-Sample keys for testing (NOT for production use):
-- **RSA Public Key** (`SAMPLE_RSA_PUBLIC_KEY` in `JWTDecoder.tsx`): For RS256 verification
-- **EC Public Key** (`SAMPLE_EC_PUBLIC_KEY` in `JWTDecoder.tsx`): For ES256 verification
+Sample keys for testing (NOT for production use) - all in `sample.ts`:
+- **RSA Key Pair** (`SAMPLE_RSA_PRIVATE_KEY` / `SAMPLE_RSA_PUBLIC_KEY`): Matching RS256 keys
+- **EC Key Pair** (`SAMPLE_EC_PRIVATE_KEY` / `SAMPLE_EC_PUBLIC_KEY`): Matching ES256 keys
 
 ### Supported Algorithms
 
@@ -80,6 +82,8 @@ Sample keys for testing (NOT for production use):
 
 ### Key Helper Functions
 
+Located in `app/utils/encode.ts`:
+
 | Function | Purpose |
 |----------|---------|
 | `importRSAPrivateKey()` | Import RSA private key for signing (RS256) |
@@ -88,3 +92,12 @@ Sample keys for testing (NOT for production use):
 | `importECPublicKey()` | Import EC public key for verification (ES256) |
 | `pemToArrayBuffer()` | Strip PEM headers and decode base64 content |
 | `derToRaw()` / `rawToDer()` | Convert ECDSA signatures between DER and raw formats |
+
+Located in `app/utils/decode.ts`:
+
+| Function | Purpose |
+|----------|---------|
+| `base64UrlToBase64()` | Convert base64url to standard Base64 with padding |
+| `base64UrlToUint8Array()` | Convert base64url to Uint8Array |
+| `base64UrlDecode()` | Convert base64url to UTF-8 string |
+| `decodeJWT()` | Decode JWT token into header, payload, signature |
