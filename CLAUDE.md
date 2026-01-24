@@ -19,7 +19,7 @@ This is a client-side JWT toolbox (encoder + decoder) built with Next.js App Rou
 
 | File | Purpose |
 |------|---------|
-| `app/utils/jwt.ts` | Core JWT encoding, decoding, and HS256 signature verification using Web Crypto API |
+| `app/utils/jwt.ts` | Core JWT encoding, decoding, and signature verification (HS256, RS256, ES256) using Web Crypto API |
 | `app/utils/format.tsx` | Recursive JSON syntax highlighting formatter, claim descriptions, timestamp formatting |
 | `app/utils/index.ts` | Re-exports all utilities |
 | `app/components/JWTDecoder.tsx` | Decoder component - manages token state, decoding, and signature verification |
@@ -47,14 +47,17 @@ Components use the `.glass` class for the translucent card effect and `.gradient
 **Decoder (`/`):**
 1. User pastes JWT → `token` state updates
 2. `useMemo` triggers `decodeJWT()` → returns `{ header, payload, signature, isValid, error }`
-3. Decoded data passed to `DecodedSection` components for display
-4. If secret provided, `useEffect` with debounce triggers `verifyJWTSignature()` → updates verification state
+3. Algorithm is auto-detected from header (`alg` field)
+4. If key provided, `useEffect` with debounce triggers `verifyJWTSignature()` → updates verification state
+5. Key input adapts based on algorithm: secret (HS256) or PEM public key (RS256/ES256)
 
 **Encoder (`/encode`):**
-1. User edits header/payload JSON or secret → state updates
-2. `useEffect` with debounce parses JSON and calls `encodeJWT()` → returns `{ token, error }`
-3. Generated token displayed with color-coded structure preview
-4. Quick buttons (`+iat`, `+exp`) modify payload with timestamp claims
+1. User edits header/payload JSON or key → state updates
+2. Algorithm is selected from dropdown (HS256, RS256, ES256)
+3. `useEffect` with debounce parses JSON and calls `encodeJWT()` → returns `{ token, error }`
+4. Generated token displayed with color-coded structure preview
+5. Quick buttons (`+iat`, `+exp`) modify payload with timestamp claims
+6. Key input adapts: secret field (HS256) or PEM private key field (RS256/ES256)
 
 ### Sample JWT
 
@@ -63,8 +66,25 @@ The sample token (`SAMPLE_JWT` in `jwt.ts`) is the standard jwt.io example:
 - Payload: `{"sub":"1234567890","name":"John Doe","iat":1516239022}`
 - Secret: `"secret"`
 
-### Currently Supported
+Sample keys for testing (NOT for production use):
+- **RSA Public Key** (`SAMPLE_RSA_PUBLIC_KEY` in `JWTDecoder.tsx`): For RS256 verification
+- **EC Public Key** (`SAMPLE_EC_PUBLIC_KEY` in `JWTDecoder.tsx`): For ES256 verification
 
-- **Encoding:** Only HS256 (HMAC-SHA256) algorithm for token creation
-- **Verification:** Only HS256 (HMAC-SHA256) signatures are verified
-- Other algorithms (RS256, ES256, etc.) will show "not supported" in the UI
+### Supported Algorithms
+
+| Algorithm | Type | Key for Signing | Key for Verification |
+|-----------|------|-----------------|---------------------|
+| **HS256** | Symmetric | Shared secret | Same shared secret |
+| **RS256** | Asymmetric | RSA private key (PKCS#8 PEM) | RSA public key (SPKI PEM) |
+| **ES256** | Asymmetric | EC private key (PKCS#8 PEM, P-256) | EC public key (SPKI PEM, P-256) |
+
+### Key Helper Functions
+
+| Function | Purpose |
+|----------|---------|
+| `importRSAPrivateKey()` | Import RSA private key for signing (RS256) |
+| `importRSAPublicKey()` | Import RSA public key for verification (RS256) |
+| `importECPrivateKey()` | Import EC private key for signing (ES256) |
+| `importECPublicKey()` | Import EC public key for verification (ES256) |
+| `pemToArrayBuffer()` | Strip PEM headers and decode base64 content |
+| `derToRaw()` / `rawToDer()` | Convert ECDSA signatures between DER and raw formats |

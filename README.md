@@ -18,12 +18,16 @@ A modern, client-side JSON Web Token (JWT) encoder and decoder built with Next.j
 ### Signature Verification
 
 - **HS256 Support** - Verify HMAC-SHA256 signatures using your secret key
+- **RS256 Support** - Verify RSA-SHA256 signatures using a public key
+- **ES256 Support** - Verify ECDSA-SHA256 signatures using a public key
 - **Real-time Verification** - Debounced verification that updates as you type
 - **Visual Indicators** - Clear status badges showing verification state
+- **Auto Algorithm Detection** - Automatically detects the algorithm from the token header
 
 ### Token Encoding
 
 - **Create JWTs** - Build custom JWT tokens with header and payload editors
+- **Algorithm Selection** - Choose between HS256, RS256, or ES256
 - **JSON Validation** - Real-time JSON parsing with clear error messages
 - **Quick Timestamps** - One-click buttons to add `iat` (issued at) and `exp` (expiration) claims
 - **Live Preview** - See your token generated instantly as you type
@@ -125,35 +129,59 @@ const result = decodeJWT(token);
 // Returns: { header: {...}, payload: {...}, signature: "...", isValid: true }
 ```
 
-### `verifyJWTSignature(token: string, secret: string): Promise<VerificationResult>`
+### `verifyJWTSignature(token: string, key: string): Promise<VerificationResult>`
 
-Verifies the signature of an HS256-encoded JWT.
+Verifies the signature of a JWT using the provided key (secret for HS256, PEM public key for RS256/ES256).
 
 ```typescript
-const result = await verifyJWTSignature(token, secret);
+// HS256 - with secret
+const result = await verifyJWTSignature(token, "your-secret");
+
+// RS256 - with RSA public key (PEM format)
+const result = await verifyJWTSignature(token, "-----BEGIN PUBLIC KEY-----\n...");
+
+// ES256 - with EC public key (PEM format)
+const result = await verifyJWTSignature(token, "-----BEGIN PUBLIC KEY-----\n...");
+
 // Returns: { verified: boolean, error?: string, algorithm?: string }
 ```
 
-### `encodeJWT(header: object, payload: object, secret: string): Promise<EncodeResult>`
+### `encodeJWT(header: object, payload: object, key: string): Promise<EncodeResult>`
 
-Creates and signs a JWT token with HS256 algorithm.
+Creates and signs a JWT token with the specified algorithm.
 
 ```typescript
+// HS256 - with secret
 const result = await encodeJWT(
   { alg: "HS256", typ: "JWT" },
   { sub: "1234567890", name: "John Doe" },
   "your-secret"
 );
+
+// RS256 - with RSA private key (PEM format)
+const result = await encodeJWT(
+  { alg: "RS256", typ: "JWT" },
+  { sub: "1234567890", name: "John Doe" },
+  "-----BEGIN PRIVATE KEY-----\n..."
+);
+
+// ES256 - with EC private key (PEM format)
+const result = await encodeJWT(
+  { alg: "ES256", typ: "JWT" },
+  { sub: "1234567890", name: "John Doe" },
+  "-----BEGIN PRIVATE KEY-----\n..."
+);
+
 // Returns: { token: string, error?: string }
 ```
 
 ## Supported Algorithms
 
-| Algorithm            | Support          |
-| -------------------- | ---------------- |
-| HS256 (HMAC-SHA256)  | ✅ Supported     |
-| RS256 (RSA-SHA256)   | ❌ Not supported |
-| ES256 (ECDSA-SHA256) | ❌ Not supported |
+| Algorithm            | Support          | Key Type       |
+| -------------------- | ---------------- | -------------- |
+| HS256 (HMAC-SHA256)  | ✅ Supported     | Symmetric      |
+| RS256 (RSA-SHA256)   | ✅ Supported     | Asymmetric     |
+| ES256 (ECDSA-SHA256) | ✅ Supported     | Asymmetric     |
 
 ## License
 
