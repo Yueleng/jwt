@@ -1,39 +1,8 @@
-import { base64UrlToUint8Array } from "./decode";
-
-/**
- * Supported JWT signing algorithms
- */
-export type SupportedAlgorithm = "HS256" | "RS256" | "ES256";
-
-export const SUPPORTED_ALGORITHMS: SupportedAlgorithm[] = [
-  "HS256",
-  "RS256",
-  "ES256",
-];
-
-/**
- * Algorithm metadata for UI display
- */
-export const ALGORITHM_INFO: Record<
+import {
+  SUPPORTED_ALGORITHMS,
   SupportedAlgorithm,
-  { name: string; description: string; keyType: "symmetric" | "asymmetric" }
-> = {
-  HS256: {
-    name: "HMAC with SHA-256",
-    description: "Symmetric algorithm using a shared secret",
-    keyType: "symmetric",
-  },
-  RS256: {
-    name: "RSA with SHA-256",
-    description: "Asymmetric algorithm using RSA public/private key pair",
-    keyType: "asymmetric",
-  },
-  ES256: {
-    name: "ECDSA with SHA-256",
-    description: "Asymmetric algorithm using Elliptic Curve (P-256) key pair",
-    keyType: "asymmetric",
-  },
-};
+  ALGORITHM_INFO,
+} from "./sample";
 
 /**
  * Strips PEM headers and decodes the base64 content
@@ -68,20 +37,6 @@ async function importRSAPrivateKey(pem: string): Promise<CryptoKey> {
 }
 
 /**
- * Imports an RSA public key for verification
- */
-async function importRSAPublicKey(pem: string): Promise<CryptoKey> {
-  const keyData = pemToArrayBuffer(pem);
-  return await crypto.subtle.importKey(
-    "spki",
-    keyData,
-    { name: "RSASSA-PKCS1-v1_5", hash: "SHA-256" },
-    false,
-    ["verify"],
-  );
-}
-
-/**
  * Imports an EC private key for signing (P-256 curve)
  */
 async function importECPrivateKey(pem: string): Promise<CryptoKey> {
@@ -92,20 +47,6 @@ async function importECPrivateKey(pem: string): Promise<CryptoKey> {
     { name: "ECDSA", namedCurve: "P-256" },
     false,
     ["sign"],
-  );
-}
-
-/**
- * Imports an EC public key for verification (P-256 curve)
- */
-async function importECPublicKey(pem: string): Promise<CryptoKey> {
-  const keyData = pemToArrayBuffer(pem);
-  return await crypto.subtle.importKey(
-    "spki",
-    keyData,
-    { name: "ECDSA", namedCurve: "P-256" },
-    false,
-    ["verify"],
   );
 }
 
@@ -161,53 +102,6 @@ function derToRaw(derSignature: ArrayBuffer): ArrayBuffer {
 }
 
 /**
- * Converts a raw R+S signature to DER format for Web Crypto verification
- */
-function rawToDer(rawSignature: Uint8Array): ArrayBuffer {
-  // Split into R and S (each 32 bytes for P-256)
-  let r = rawSignature.slice(0, 32);
-  let s = rawSignature.slice(32, 64);
-
-  // Add leading zero if high bit is set (to prevent interpretation as negative)
-  if (r[0] & 0x80) {
-    const padded = new Uint8Array(33);
-    padded[0] = 0;
-    padded.set(r, 1);
-    r = padded;
-  }
-  if (s[0] & 0x80) {
-    const padded = new Uint8Array(33);
-    padded[0] = 0;
-    padded.set(s, 1);
-    s = padded;
-  }
-
-  // Remove leading zeros (except if value would be negative)
-  while (r.length > 1 && r[0] === 0 && !(r[1] & 0x80)) {
-    r = r.slice(1);
-  }
-  while (s.length > 1 && s[0] === 0 && !(s[1] & 0x80)) {
-    s = s.slice(1);
-  }
-
-  const totalLen = 2 + r.length + 2 + s.length;
-  const der = new Uint8Array(2 + totalLen);
-
-  let offset = 0;
-  der[offset++] = 0x30; // SEQUENCE
-  der[offset++] = totalLen;
-  der[offset++] = 0x02; // INTEGER
-  der[offset++] = r.length;
-  der.set(r, offset);
-  offset += r.length;
-  der[offset++] = 0x02; // INTEGER
-  der[offset++] = s.length;
-  der.set(s, offset);
-
-  return der.buffer;
-}
-
-/**
  * Converts a Uint8Array to a base64url string.
  * Base64url is a URL-safe variant of Base64 that uses - instead of + and _ instead of /,
  * and omits padding (= characters).
@@ -245,126 +139,6 @@ function base64UrlEncode(str: string): string {
     .replace(/\+/g, "-")
     .replace(/\//g, "_")
     .replace(/=+$/, "");
-}
-
-export type VerificationResult = {
-  verified: boolean;
-  error?: string;
-  algorithm?: string;
-};
-
-/**
- * Verifies a JWT signature using the provided key.
- * Supports HS256 (HMAC-SHA256), RS256 (RSA-SHA256), and ES256 (ECDSA-SHA256).
- *
- * @param token - The complete JWT token string
- * @param key - The key used to verify the token:
- *              - For HS256: the shared secret string
- *              - For RS256/ES256: the public key in PEM format
- * @returns Promise with verification result
- */
-export async function verifyJWTSignature(
-  token: string,
-  key: string,
-): Promise<VerificationResult> {
-  if (!token || !key) {
-    return { verified: false, error: "Token and key are required" };
-  }
-
-  const parts = token.trim().split(".");
-  if (parts.length !== 3) {
-    return { verified: false, error: "Invalid JWT structure" };
-  }
-
-  const [headerB64, payloadB64, signatureB64] = parts;
-
-  // Decode header to check algorithm
-  let header: Record<string, unknown>;
-  try {
-    const headerJson = atob(
-      headerB64.replace(/-/g, "+").replace(/_/g, "/") +
-        "=".repeat((4 - (headerB64.length % 4)) % 4),
-    );
-    header = JSON.parse(headerJson);
-  } catch {
-    return { verified: false, error: "Invalid header" };
-  }
-
-  const algorithm = header.alg as string;
-
-  // Check if algorithm is supported
-  if (!SUPPORTED_ALGORITHMS.includes(algorithm as SupportedAlgorithm)) {
-    return {
-      verified: false,
-      error: `Algorithm "${algorithm}" is not supported. Supported: ${SUPPORTED_ALGORITHMS.join(", ")}`,
-      algorithm,
-    };
-  }
-
-  try {
-    // The data to verify is "header.payload"
-    const dataToVerify = `${headerB64}.${payloadB64}`;
-    const encoder = new TextEncoder();
-    const dataBytes = encoder.encode(dataToVerify);
-    const signatureBytes = base64UrlToUint8Array(signatureB64);
-
-    let isValid = false;
-
-    if (algorithm === "HS256") {
-      // HMAC-SHA256: Use secret to compute signature and compare
-      const keyData = encoder.encode(key);
-      const cryptoKey = await crypto.subtle.importKey(
-        "raw",
-        keyData,
-        { name: "HMAC", hash: "SHA-256" },
-        false,
-        ["sign"],
-      );
-
-      const signatureBuffer = await crypto.subtle.sign(
-        "HMAC",
-        cryptoKey,
-        dataBytes,
-      );
-
-      const computedSignature = uint8ArrayToBase64Url(
-        new Uint8Array(signatureBuffer),
-      );
-      isValid = computedSignature === signatureB64;
-    } else if (algorithm === "RS256") {
-      // RSA-SHA256: Use public key to verify
-      const publicKey = await importRSAPublicKey(key);
-      isValid = await crypto.subtle.verify(
-        { name: "RSASSA-PKCS1-v1_5" },
-        publicKey,
-        signatureBytes,
-        dataBytes,
-      );
-    } else if (algorithm === "ES256") {
-      // ECDSA-SHA256: Use public key to verify
-      // Convert raw signature to DER format for Web Crypto
-      const derSignature = rawToDer(signatureBytes);
-      const publicKey = await importECPublicKey(key);
-      isValid = await crypto.subtle.verify(
-        { name: "ECDSA", hash: "SHA-256" },
-        publicKey,
-        derSignature,
-        dataBytes,
-      );
-    }
-
-    return {
-      verified: isValid,
-      algorithm,
-      error: isValid ? undefined : "Signature does not match",
-    };
-  } catch (e) {
-    return {
-      verified: false,
-      error: `Verification failed: ${(e as Error).message}`,
-      algorithm,
-    };
-  }
 }
 
 export type EncodeResult = {

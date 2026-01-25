@@ -4,6 +4,41 @@
  */
 
 /**
+ * Supported JWT signing algorithms
+ */
+export type SupportedAlgorithm = "HS256" | "RS256" | "ES256";
+
+export const SUPPORTED_ALGORITHMS: SupportedAlgorithm[] = [
+  "HS256",
+  "RS256",
+  "ES256",
+];
+
+/**
+ * Algorithm metadata for UI display
+ */
+export const ALGORITHM_INFO: Record<
+  SupportedAlgorithm,
+  { name: string; description: string; keyType: "symmetric" | "asymmetric" }
+> = {
+  HS256: {
+    name: "HMAC with SHA-256",
+    description: "Symmetric algorithm using a shared secret",
+    keyType: "symmetric",
+  },
+  RS256: {
+    name: "RSA with SHA-256",
+    description: "Asymmetric algorithm using RSA public/private key pair",
+    keyType: "asymmetric",
+  },
+  ES256: {
+    name: "ECDSA with SHA-256",
+    description: "Asymmetric algorithm using Elliptic Curve (P-256) key pair",
+    keyType: "asymmetric",
+  },
+};
+
+/**
  * Sample JWT token (standard jwt.io example)
  * Header: {"alg":"HS256","typ":"JWT"}
  * Payload: {"sub":"1234567890","name":"John Doe","iat":1516239022}
