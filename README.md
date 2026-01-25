@@ -105,9 +105,10 @@ jwt/
 │   │   ├── DecodedSection.tsx # Reusable section for header/payload display
 │   │   └── Navigation.tsx    # Nav component for page switching
 │   ├── utils/
-│   │   ├── decode.ts         # JWT decoding and base64url utilities
-│   │   ├── encode.ts         # JWT encoding and signature verification
-│   │   ├── sample.ts         # Sample JWT and matching key pairs
+│   │   ├── common.ts         # Base64url encoding/decoding utilities
+│   │   ├── decode.ts         # JWT decoding and signature verification
+│   │   ├── encode.ts         # JWT encoding functions
+│   │   ├── sample.ts         # Algorithm constants, sample JWT, and key pairs
 │   │   ├── format.tsx        # JSON formatting and claim descriptions
 │   │   └── index.ts          # Utility exports
 │   ├── encode/

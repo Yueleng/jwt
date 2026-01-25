@@ -19,9 +19,10 @@ This is a client-side JWT toolbox (encoder + decoder) built with Next.js App Rou
 
 | File | Purpose |
 |------|---------|
-| `app/utils/decode.ts` | JWT decoding functions and base64url utilities |
-| `app/utils/encode.ts` | JWT encoding and signature verification (HS256, RS256, ES256) using Web Crypto API |
-| `app/utils/sample.ts` | Sample JWT and matching RSA/EC key pairs for testing |
+| `app/utils/common.ts` | Base64url encoding/decoding utilities (shared between decode/encode) |
+| `app/utils/decode.ts` | JWT decoding and signature verification functions |
+| `app/utils/encode.ts` | JWT encoding functions using Web Crypto API |
+| `app/utils/sample.ts` | Algorithm constants, sample JWT, and matching RSA/EC key pairs |
 | `app/utils/format.tsx` | Recursive JSON syntax highlighting formatter, claim descriptions, timestamp formatting |
 | `app/utils/index.ts` | Re-exports all utilities |
 | `app/components/JWTDecoder.tsx` | Decoder component - manages token state, decoding, and signature verification |
@@ -82,22 +83,30 @@ Sample keys for testing (NOT for production use) - all in `sample.ts`:
 
 ### Key Helper Functions
 
+Located in `app/utils/common.ts`:
+
+| Function | Purpose |
+|----------|---------|
+| `uint8ArrayToBase64Url()` | Convert Uint8Array to base64url string |
+| `base64UrlToBase64()` | Convert base64url to standard Base64 with padding |
+| `base64UrlToUint8Array()` | Convert base64url to Uint8Array |
+| `base64UrlDecode()` | Convert base64url to UTF-8 string |
+
 Located in `app/utils/encode.ts`:
 
 | Function | Purpose |
 |----------|---------|
 | `importRSAPrivateKey()` | Import RSA private key for signing (RS256) |
-| `importRSAPublicKey()` | Import RSA public key for verification (RS256) |
 | `importECPrivateKey()` | Import EC private key for signing (ES256) |
-| `importECPublicKey()` | Import EC public key for verification (ES256) |
 | `pemToArrayBuffer()` | Strip PEM headers and decode base64 content |
-| `derToRaw()` / `rawToDer()` | Convert ECDSA signatures between DER and raw formats |
+| `derToRaw()` | Convert ECDSA signatures from DER to raw format |
 
 Located in `app/utils/decode.ts`:
 
 | Function | Purpose |
 |----------|---------|
-| `base64UrlToBase64()` | Convert base64url to standard Base64 with padding |
-| `base64UrlToUint8Array()` | Convert base64url to Uint8Array |
-| `base64UrlDecode()` | Convert base64url to UTF-8 string |
+| `importRSAPublicKey()` | Import RSA public key for verification (RS256) |
+| `importECPublicKey()` | Import EC public key for verification (ES256) |
+| `rawToDer()` | Convert ECDSA signatures from raw to DER format |
 | `decodeJWT()` | Decode JWT token into header, payload, signature |
+| `verifyJWTSignature()` | Verify JWT signature using provided key |
