@@ -11,17 +11,11 @@ export {
 export type { SupportedAlgorithm } from "./sample";
 
 // Decode utilities
-export {
-  decodeJWT,
-  verifyJWTSignature,
-  base64UrlToUint8Array,
-} from "./decode";
+export { decodeJWT, verifyJWTSignature } from "./decode";
 export type { DecodedJWT, VerificationResult } from "./decode";
 
 // Encode utilities
-export {
-  encodeJWT,
-} from "./encode";
+export { encodeJWT } from "./encode";
 export type { EncodeResult } from "./encode";
 
 // Formatting utilities

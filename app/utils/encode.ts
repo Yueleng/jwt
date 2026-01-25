@@ -1,3 +1,4 @@
+import { uint8ArrayToBase64Url } from "./common";
 import {
   SUPPORTED_ALGORITHMS,
   SupportedAlgorithm,
@@ -99,26 +100,6 @@ function derToRaw(derSignature: ArrayBuffer): ArrayBuffer {
   raw.set(r, 0);
   raw.set(s, 32);
   return raw.buffer;
-}
-
-/**
- * Converts a Uint8Array to a base64url string.
- * Base64url is a URL-safe variant of Base64 that uses - instead of + and _ instead of /,
- * and omits padding (= characters).
- *
- * @param bytes - The byte array to convert
- * @returns The base64url encoded string
- */
-function uint8ArrayToBase64Url(bytes: Uint8Array): string {
-  let binary = "";
-  for (let i = 0; i < bytes.length; i++) {
-    binary += String.fromCharCode(bytes[i]);
-  }
-  // Convert to base64, then to base64url
-  return btoa(binary)
-    .replace(/\+/g, "-")
-    .replace(/\//g, "_")
-    .replace(/=+$/, "");
 }
 
 /**
