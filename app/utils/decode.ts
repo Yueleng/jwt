@@ -106,50 +106,6 @@ async function importECPublicKey(pem: string): Promise<CryptoKey> {
 }
 
 /**
- * Converts a raw R+S signature to DER format for Web Crypto verification
- */
-function rawToDer(rawSignature: Uint8Array): ArrayBuffer {
-  let r = rawSignature.slice(0, 32);
-  let s = rawSignature.slice(32, 64);
-
-  if (r[0] & 0x80) {
-    const padded = new Uint8Array(33);
-    padded[0] = 0;
-    padded.set(r, 1);
-    r = padded;
-  }
-  if (s[0] & 0x80) {
-    const padded = new Uint8Array(33);
-    padded[0] = 0;
-    padded.set(s, 1);
-    s = padded;
-  }
-
-  while (r.length > 1 && r[0] === 0 && !(r[1] & 0x80)) {
-    r = r.slice(1);
-  }
-  while (s.length > 1 && s[0] === 0 && !(s[1] & 0x80)) {
-    s = s.slice(1);
-  }
-
-  const totalLen = 2 + r.length + 2 + s.length;
-  const der = new Uint8Array(2 + totalLen);
-
-  let offset = 0;
-  der[offset++] = 0x30;
-  der[offset++] = totalLen;
-  der[offset++] = 0x02;
-  der[offset++] = r.length;
-  der.set(r, offset);
-  offset += r.length;
-  der[offset++] = 0x02;
-  der[offset++] = s.length;
-  der.set(s, offset);
-
-  return der.buffer;
-}
-
-/**
  * Verifies a JWT signature using the provided key.
  * Supports HS256 (HMAC-SHA256), RS256 (RSA-SHA256), and ES256 (ECDSA-SHA256).
  *
@@ -235,13 +191,12 @@ export async function verifyJWTSignature(
       );
     } else if (algorithm === "ES256") {
       // ECDSA-SHA256: Use public key to verify
-      // Convert raw signature to DER format for Web Crypto
-      const derSignature = rawToDer(signatureBytes);
+      // Web Crypto uses raw R||S format, same as JWT, so no conversion needed
       const publicKey = await importECPublicKey(key);
       isValid = await crypto.subtle.verify(
         { name: "ECDSA", hash: "SHA-256" },
         publicKey,
-        derSignature,
+        signatureBytes,
         dataBytes,
       );
     }

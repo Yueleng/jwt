@@ -37,57 +37,6 @@ async function importECPrivateKey(pem: string): Promise<CryptoKey> {
   );
 }
 
-/**
- * Converts an ECDSA signature from DER format to raw R+S format
- * JWT uses raw R+S format (64 bytes for P-256), but Web Crypto produces DER
- */
-function derToRaw(derSignature: ArrayBuffer): ArrayBuffer {
-  const der = new Uint8Array(derSignature);
-  // DER format: 0x30 [length] 0x02 [r-length] [r] 0x02 [s-length] [s]
-  // Check if it's already raw format (64 bytes for P-256)
-  if (der.length === 64) {
-    return derSignature;
-  }
-
-  let offset = 2; // Skip 0x30 and total length byte
-
-  // Parse R
-  if (der[offset] !== 0x02) throw new Error("Invalid DER signature");
-  offset++;
-  const rLen = der[offset];
-  offset++;
-  let r = der.slice(offset, offset + rLen);
-  offset += rLen;
-
-  // Parse S
-  if (der[offset] !== 0x02) throw new Error("Invalid DER signature");
-  offset++;
-  const sLen = der[offset];
-  offset++;
-  let s = der.slice(offset, offset + sLen);
-
-  // Remove leading zeros and pad to 32 bytes
-  if (r.length > 32 && r[0] === 0) r = r.slice(1);
-  if (s.length > 32 && s[0] === 0) s = s.slice(1);
-
-  // Pad to 32 bytes if shorter
-  if (r.length < 32) {
-    const padded = new Uint8Array(32);
-    padded.set(r, 32 - r.length);
-    r = padded;
-  }
-  if (s.length < 32) {
-    const padded = new Uint8Array(32);
-    padded.set(s, 32 - s.length);
-    s = padded;
-  }
-
-  const raw = new Uint8Array(64);
-  raw.set(r, 0);
-  raw.set(s, 32);
-  return raw.buffer;
-}
-
 export type EncodeResult = {
   token: string;
   error?: string;
@@ -181,6 +130,7 @@ export async function encodeJWT(
       signatureB64 = uint8ArrayToBase64Url(new Uint8Array(signatureBuffer));
     } else if (algorithm === "ES256") {
       // ECDSA-SHA256: Use private key for signing
+      // Web Crypto returns raw R||S format (64 bytes), same as JWT
       const privateKey = await importECPrivateKey(key);
       const signatureBuffer = await crypto.subtle.sign(
         { name: "ECDSA", hash: "SHA-256" },
@@ -188,9 +138,7 @@ export async function encodeJWT(
         signingInputBytes,
       );
 
-      // Convert DER signature to raw R+S format (JWT uses raw format)
-      const rawSignature = derToRaw(signatureBuffer);
-      signatureB64 = uint8ArrayToBase64Url(new Uint8Array(rawSignature));
+      signatureB64 = uint8ArrayToBase64Url(new Uint8Array(signatureBuffer));
     } else {
       return { token: "", error: "Unsupported algorithm" };
     }
