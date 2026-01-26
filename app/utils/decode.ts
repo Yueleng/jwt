@@ -2,6 +2,7 @@ import {
   base64UrlDecode,
   base64UrlToUint8Array,
   uint8ArrayToBase64Url,
+  pemToArrayBuffer,
 } from "./common";
 import { SUPPORTED_ALGORITHMS, SupportedAlgorithm } from "./sample";
 
@@ -74,23 +75,6 @@ export function decodeJWT(token: string): DecodedJWT {
   result.isValid = true;
 
   return result;
-}
-
-/**
- * Strips PEM headers and decodes the base64 content
- */
-function pemToArrayBuffer(pem: string): ArrayBuffer {
-  const base64 = pem
-    .replace(/-----BEGIN [\w\s]+-----/g, "")
-    .replace(/-----END [\w\s]+-----/g, "")
-    .replace(/\s/g, "");
-
-  const binary = atob(base64);
-  const bytes = new Uint8Array(binary.length);
-  for (let i = 0; i < binary.length; i++) {
-    bytes[i] = binary.charCodeAt(i);
-  }
-  return bytes.buffer;
 }
 
 /**
@@ -193,10 +177,7 @@ export async function verifyJWTSignature(
   // Decode header to check algorithm
   let header: Record<string, unknown>;
   try {
-    const headerJson = atob(
-      headerB64.replace(/-/g, "+").replace(/_/g, "/") +
-        "=".repeat((4 - (headerB64.length % 4)) % 4),
-    );
+    const headerJson = base64UrlDecode(headerB64);
     header = JSON.parse(headerJson);
   } catch {
     return { verified: false, error: "Invalid header" };

@@ -1,27 +1,13 @@
-import { uint8ArrayToBase64Url } from "./common";
+import {
+  base64UrlEncode,
+  uint8ArrayToBase64Url,
+  pemToArrayBuffer,
+} from "./common";
 import {
   SUPPORTED_ALGORITHMS,
   SupportedAlgorithm,
   ALGORITHM_INFO,
 } from "./sample";
-
-/**
- * Strips PEM headers and decodes the base64 content
- */
-function pemToArrayBuffer(pem: string): ArrayBuffer {
-  // Remove PEM headers, footers, and whitespace
-  const base64 = pem
-    .replace(/-----BEGIN [\w\s]+-----/g, "")
-    .replace(/-----END [\w\s]+-----/g, "")
-    .replace(/\s/g, "");
-
-  const binary = atob(base64);
-  const bytes = new Uint8Array(binary.length);
-  for (let i = 0; i < binary.length; i++) {
-    bytes[i] = binary.charCodeAt(i);
-  }
-  return bytes.buffer;
-}
 
 /**
  * Imports an RSA private key for signing
@@ -102,26 +88,6 @@ function derToRaw(derSignature: ArrayBuffer): ArrayBuffer {
   return raw.buffer;
 }
 
-/**
- * Encodes a string to base64url format.
- *
- * @param str - The string to encode
- * @returns The base64url encoded string
- */
-function base64UrlEncode(str: string): string {
-  // Convert string to UTF-8 bytes, then to base64
-  const utf8Bytes = new TextEncoder().encode(str);
-  let binary = "";
-  for (let i = 0; i < utf8Bytes.length; i++) {
-    binary += String.fromCharCode(utf8Bytes[i]);
-  }
-  // Convert to base64, then to base64url (replace + with -, / with _, remove =)
-  return btoa(binary)
-    .replace(/\+/g, "-")
-    .replace(/\//g, "_")
-    .replace(/=+$/, "");
-}
-
 export type EncodeResult = {
   token: string;
   error?: string;
@@ -175,6 +141,12 @@ export async function encodeJWT(
     // Create the signing input
     const signingInput = `${headerB64}.${payloadB64}`;
     const encoder = new TextEncoder();
+
+    // step 1: stringify the header [JSON.stringify(header)]
+    // step 2: TextEncoder().encode(stringifiedHeader): result to Uint8Array
+    // step 3: uint8ArrayToBase64Url(uint8Array): result to base64url string
+    // step 4: repeat step 1-3 for the payload
+    // step 5: textEncoder().encode(`${headerB64}.${payloadB64}`): result to Uint8Array
     const signingInputBytes = encoder.encode(signingInput);
 
     let signatureB64: string;

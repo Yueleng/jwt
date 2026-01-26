@@ -141,10 +141,16 @@ Verifies the signature of a JWT using the provided key (secret for HS256, PEM pu
 const result = await verifyJWTSignature(token, "your-secret");
 
 // RS256 - with RSA public key (PEM format)
-const result = await verifyJWTSignature(token, "-----BEGIN PUBLIC KEY-----\n...");
+const result = await verifyJWTSignature(
+  token,
+  "-----BEGIN PUBLIC KEY-----\n...",
+);
 
 // ES256 - with EC public key (PEM format)
-const result = await verifyJWTSignature(token, "-----BEGIN PUBLIC KEY-----\n...");
+const result = await verifyJWTSignature(
+  token,
+  "-----BEGIN PUBLIC KEY-----\n...",
+);
 
 // Returns: { verified: boolean, error?: string, algorithm?: string }
 ```
@@ -158,33 +164,283 @@ Creates and signs a JWT token with the specified algorithm.
 const result = await encodeJWT(
   { alg: "HS256", typ: "JWT" },
   { sub: "1234567890", name: "John Doe" },
-  "your-secret"
+  "your-secret",
 );
 
 // RS256 - with RSA private key (PEM format)
 const result = await encodeJWT(
   { alg: "RS256", typ: "JWT" },
   { sub: "1234567890", name: "John Doe" },
-  "-----BEGIN PRIVATE KEY-----\n..."
+  "-----BEGIN PRIVATE KEY-----\n...",
 );
 
 // ES256 - with EC private key (PEM format)
 const result = await encodeJWT(
   { alg: "ES256", typ: "JWT" },
   { sub: "1234567890", name: "John Doe" },
-  "-----BEGIN PRIVATE KEY-----\n..."
+  "-----BEGIN PRIVATE KEY-----\n...",
 );
 
 // Returns: { token: string, error?: string }
 ```
 
+## How JWT Works
+
+### JWT Structure
+
+A JWT consists of three parts separated by dots (`.`):
+
+```
+header.payload.signature
+```
+
+For example:
+
+```
+eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c
+```
+
+### Encoding Process
+
+Creating a JWT involves these steps:
+
+```
+1. Create Header
+   {"alg": "HS256", "typ": "JWT"}
+   ↓
+2. Base64Url encode Header
+   ↓
+3. Create Payload (Claims)
+   {"sub": "1234567890", "name": "John Doe", "iat": 1516239022}
+   ↓
+4. Base64Url encode Payload
+   ↓
+5. Create Signature
+   data: base64UrlString = base64Url(header) + "." + base64Url(payload)
+   signingInput: Uint8Array = encoder.encode(data)
+   signingSecret: Uint8Array = encoder.encode(secret)
+   signature: Uint8Array = sign(signingInput, signingSecret)  // Algorithm-specific
+   ↓
+6. Base64Url encode Signature (convert Uint8Array to base64url string)
+   ↓
+7. Combine: base64Url(header).base64Url(payload).base64Url(signature)
+```
+
+### Create Signature Process
+
+The signature is the cryptographic proof that the token was created by someone who possesses the signing key. It binds the header and payload together so any modification would invalidate the signature.
+
+**Algorithm-specific signing:**
+
+| Algorithm | Signing Process                                                                           |
+| --------- | ----------------------------------------------------------------------------------------- |
+| **HS256** | `HMAC-SHA256(data, secret)` → symmetric, same key for sign/verify                         |
+| **RS256** | `RSASSA-PKCS1-v1_5.sign(data, privateKey)` → asymmetric, private key signs                |
+| **ES256** | `ECDSA-SHA256.sign(data, privateKey)` → asymmetric, private key signs, DER→raw conversion |
+
+---
+
+#### HS256 (HMAC with SHA-256)
+
+**Symmetric algorithm** - the same secret is used for both signing and verification.
+
+```
+Signing Input: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0"
+Secret: "your-256-bit-secret"
+
+Process:
+1. Convert secret to bytes (UTF-8)
+2. Import key as HMAC key with SHA-256
+3. Compute HMAC-SHA256(signingInput, keyBytes)
+4. Output: 32-byte hash
+
+5. Encode to base64url: "SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c"
+```
+
+**Key requirements:**
+
+- Any string (typically 256+ bits recommended)
+- Shared between signing and verification parties
+- Must be kept confidential
+
+---
+
+#### RS256 (RSA Signature with PKCS#1 v1_5 and SHA-256)
+
+**Asymmetric algorithm** - private key signs, public key verifies.
+
+```
+Signing Input: "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0"
+Private Key: RSA 2048-bit (PKCS#8 PEM format)
+
+Process:
+1. Parse PEM: Strip "-----BEGIN PRIVATE KEY-----" headers, decode base64
+2. Import key: PKCS#8 format, RSASSA-PKCS1-v1_5, SHA-256 hash
+3. Sign: crypto.subtle.sign(
+     { name: "RSASSA-PKCS1-v1_5" },
+     privateKey,
+     signingInputBytes
+   )
+4. Output: 256-byte signature (for 2048-bit RSA key)
+
+5. Encode to base64url: signature becomes the third part of JWT
+```
+
+**Key requirements:**
+
+- **Signing**: RSA private key in PKCS#8 format (PEM encoded)
+- **Verification**: RSA public key in SPKI format (PEM encoded)
+- Recommended key size: 2048 bits minimum (4096 bits for higher security)
+
+**PEM format example:**
+
+```
+-----BEGIN PRIVATE KEY-----
+MIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQC...
+-----END PRIVATE KEY-----
+```
+
+---
+
+#### ES256 (ECDSA Signature with P-256 and SHA-256)
+
+**Asymmetric algorithm** - private key signs, public key verifies. Uses Elliptic Curve cryptography for smaller signatures.
+
+```
+Signing Input: "eyJhbGciOiJFUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0"
+Private Key: EC P-256 (PKCS#8 PEM format)
+
+Process:
+1. Parse PEM: Strip "-----BEGIN PRIVATE KEY-----" headers, decode base64
+2. Import key: PKCS#8 format, ECDSA, namedCurve: P-256
+3. Sign: crypto.subtle.sign(
+     { name: "ECDSA", hash: "SHA-256" },
+     privateKey,
+     signingInputBytes
+   )
+4. Output: DER-encoded signature (variable length, ~70-72 bytes)
+
+   DER format structure:
+   0x30 [total-length]
+     0x02 [r-length] [r-value]
+     0x02 [s-length] [s-value]
+
+5. ⚠️ CRITICAL: Convert DER to raw format for JWT
+   - Extract r and s values from DER structure
+   - Pad each to 32 bytes (P-256)
+   - Concatenate: rawSignature = r (32 bytes) + s (32 bytes)
+   - Total: 64 bytes
+
+6. Encode to base64url: 64-byte raw signature becomes the third part
+```
+
+**Key requirements:**
+
+- **Signing**: EC private key for P-256 curve (PKCS#8 format)
+- **Verification**: EC public key for P-256 curve (SPKI format)
+- Signature size: 64 bytes (raw), much smaller than RS256's 256 bytes
+
+**Why DER→Raw conversion?**
+
+- Web Crypto API produces DER-encoded signatures (ASN.1 format)
+- JWT specification requires raw concatenation of R and S values
+- Without conversion, verification will fail
+
+**PEM format example:**
+
+```
+-----BEGIN PRIVATE KEY-----
+MIGHAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBG0wawIBAQQg...
+-----END PRIVATE KEY-----
+```
+
+---
+
+#### Base64Url Encoding
+
+After signature generation, the binary output must be encoded:
+
+```
+Raw binary: [0x5F, 0x6C, 0x6B, ...]
+↓
+Base64: "SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c="
+↓
+Base64Url: "SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c"
+           (remove padding, replace + and /)
+```
+
+**Character mapping:**
+
+- `+` → `-` (URL-safe)
+- `/` → `_` (URL-safe)
+- `=` (padding) → removed
+
+**Base64Url encoding** converts binary data to URL-safe text:
+
+- Standard Base64 characters: `A-Z`, `a-z`, `0-9`, `+`, `/`
+- Base64Url replaces: `+` → `-`, `/` → `_`, removes `=` padding
+
+### Decoding Process
+
+Decoding a JWT is the reverse (for header and payload):
+
+```
+1. Split token by "."
+   [headerB64, payloadB64, signatureB64]
+   ↓
+2. Decode Header
+   base64UrlDecode(headerB64) → JSON.parse() → {"alg": "HS256", "typ": "JWT"}
+   ↓
+3. Decode Payload
+   base64UrlDecode(payloadB64) → JSON.parse() → {"sub": "1234567890", ...}
+   ↓
+4. Extract Signature
+   signatureB64 (kept as-is for verification)
+```
+
+**Important:** Decoding only reveals the content. It does **not** verify the signature. Anyone can decode a JWT and read its contents—the signature proves it was created by someone with the private/secret key.
+
+### Signature Verification
+
+Verification ensures the token hasn't been tampered with:
+
+```
+1. Decode header to get algorithm (e.g., "RS256")
+   ↓
+2. Recreate the signing input
+   data = headerB64 + "." + payloadB64
+   ↓
+3. Verify signature using algorithm and key
+   - HS256: HMAC-SHA256(data, secret) == decodedSignature
+   - RS256: RSA.verify(data, publicKey, signature)
+   - ES256: ECDSA.verify(data, publicKey, rawToDer(signature))
+   ↓
+4. Return verified: true/false
+```
+
+**Key types for verification:**
+
+| Algorithm | Key Required                                          |
+| --------- | ----------------------------------------------------- |
+| **HS256** | Same shared secret used for signing                   |
+| **RS256** | RSA public key (matching the private key that signed) |
+| **ES256** | EC public key (matching the private key that signed)  |
+
+### Security Notes
+
+1. **Never store sensitive data in JWT payload** — anyone can decode it
+2. **Always verify signatures** — decoded tokens may be tampered
+3. **Use strong secrets for HS256** — at least 256 bits (32 characters)
+4. **Keep private keys secure** — never expose them in client-side code
+5. **Validate claims** — check `exp` (expiration), `nbf` (not before), `iss` (issuer)
+
 ## Supported Algorithms
 
-| Algorithm            | Support          | Key Type       |
-| -------------------- | ---------------- | -------------- |
-| HS256 (HMAC-SHA256)  | ✅ Supported     | Symmetric      |
-| RS256 (RSA-SHA256)   | ✅ Supported     | Asymmetric     |
-| ES256 (ECDSA-SHA256) | ✅ Supported     | Asymmetric     |
+| Algorithm            | Support      | Key Type   |
+| -------------------- | ------------ | ---------- |
+| HS256 (HMAC-SHA256)  | ✅ Supported | Symmetric  |
+| RS256 (RSA-SHA256)   | ✅ Supported | Asymmetric |
+| ES256 (ECDSA-SHA256) | ✅ Supported | Asymmetric |
 
 ## License
 
