@@ -17,25 +17,26 @@ This is a client-side JWT toolbox (encoder + decoder) built with Next.js App Rou
 
 ### Key Files
 
-| File | Purpose |
-|------|---------|
-| `app/utils/common.ts` | Base64url encoding/decoding utilities (shared between decode/encode) |
-| `app/utils/decode.ts` | JWT decoding and signature verification functions |
-| `app/utils/encode.ts` | JWT encoding functions using Web Crypto API |
-| `app/utils/sample.ts` | Algorithm constants, sample JWT, and matching RSA/EC key pairs |
-| `app/utils/format.tsx` | Recursive JSON syntax highlighting formatter, claim descriptions, timestamp formatting |
-| `app/utils/index.ts` | Re-exports all utilities |
-| `app/components/JWTDecoder.tsx` | Decoder component - manages token state, decoding, and signature verification |
-| `app/components/JWTEncoder.tsx` | Encoder component - creates JWTs with header/payload editors and live preview |
-| `app/components/DecodedSection.tsx` | Reusable section for header/payload display with JSON/Claims toggle |
-| `app/components/Navigation.tsx` | Nav component for switching between Encoder and Decoder pages |
-| `app/page.tsx` | Decoder page entry point - renders JWTDecoder |
-| `app/encode/page.tsx` | Encoder page entry point - renders JWTEncoder |
-| `app/globals.css` | CSS custom properties for colors, glassmorphic styles, JWT color coding, animations |
+| File                                | Purpose                                                                                |
+| ----------------------------------- | -------------------------------------------------------------------------------------- |
+| `app/utils/common.ts`               | Base64url encoding/decoding utilities (shared between decode/encode)                   |
+| `app/utils/decode.ts`               | JWT decoding and signature verification functions                                      |
+| `app/utils/encode.ts`               | JWT encoding functions using Web Crypto API                                            |
+| `app/utils/sample.ts`               | Algorithm constants, sample JWT, and matching RSA/EC key pairs                         |
+| `app/utils/format.tsx`              | Recursive JSON syntax highlighting formatter, claim descriptions, timestamp formatting |
+| `app/utils/index.ts`                | Re-exports all utilities                                                               |
+| `app/components/JWTDecoder.tsx`     | Decoder component - manages token state, decoding, and signature verification          |
+| `app/components/JWTEncoder.tsx`     | Encoder component - creates JWTs with header/payload editors and live preview          |
+| `app/components/DecodedSection.tsx` | Reusable section for header/payload display with JSON/Claims toggle                    |
+| `app/components/Navigation.tsx`     | Nav component for switching between Encoder and Decoder pages                          |
+| `app/page.tsx`                      | Decoder page entry point - renders JWTDecoder                                          |
+| `app/encode/page.tsx`               | Encoder page entry point - renders JWTEncoder                                          |
+| `app/globals.css`                   | CSS custom properties for colors, glassmorphic styles, JWT color coding, animations    |
 
 ### Design System
 
 The app uses CSS custom properties defined in `:root` of `globals.css`:
+
 - `--header-color` for JWT headers
 - `--payload-color` for JWT payloads
 - `--signature-color` for JWT signatures
@@ -48,6 +49,7 @@ Components use the `.glass` class for the translucent card effect and `.gradient
 ### Data Flow
 
 **Decoder (`/`):**
+
 1. User pastes JWT → `token` state updates
 2. `useMemo` triggers `decodeJWT()` → returns `{ header, payload, signature, isValid, error }`
 3. Algorithm is auto-detected from header (`alg` field)
@@ -55,6 +57,7 @@ Components use the `.glass` class for the translucent card effect and `.gradient
 5. Key input adapts based on algorithm: secret (HS256) or PEM public key (RS256/ES256)
 
 **Encoder (`/encode`):**
+
 1. User edits header/payload JSON or key → state updates
 2. Algorithm is selected from dropdown (HS256, RS256, ES256)
 3. `useEffect` with debounce parses JSON and calls `encodeJWT()` → returns `{ token, error }`
@@ -65,48 +68,59 @@ Components use the `.glass` class for the translucent card effect and `.gradient
 ### Sample JWT
 
 The sample token (`SAMPLE_JWT` in `sample.ts`) is the standard jwt.io example:
+
 - Header: `{"alg":"HS256","typ":"JWT"}`
 - Payload: `{"sub":"1234567890","name":"John Doe","iat":1516239022}`
 - Secret: `"secret"`
 
 Sample keys for testing (NOT for production use) - all in `sample.ts`:
+
 - **RSA Key Pair** (`SAMPLE_RSA_PRIVATE_KEY` / `SAMPLE_RSA_PUBLIC_KEY`): Matching RS256 keys
 - **EC Key Pair** (`SAMPLE_EC_PRIVATE_KEY` / `SAMPLE_EC_PUBLIC_KEY`): Matching ES256 keys
 
 ### Supported Algorithms
 
-| Algorithm | Type | Key for Signing | Key for Verification |
-|-----------|------|-----------------|---------------------|
-| **HS256** | Symmetric | Shared secret | Same shared secret |
-| **RS256** | Asymmetric | RSA private key (PKCS#8 PEM) | RSA public key (SPKI PEM) |
+| Algorithm | Type       | Key for Signing                    | Key for Verification            |
+| --------- | ---------- | ---------------------------------- | ------------------------------- |
+| **HS256** | Symmetric  | Shared secret                      | Same shared secret              |
+| **RS256** | Asymmetric | RSA private key (PKCS#8 PEM)       | RSA public key (SPKI PEM)       |
 | **ES256** | Asymmetric | EC private key (PKCS#8 PEM, P-256) | EC public key (SPKI PEM, P-256) |
 
 ### Key Helper Functions
 
 Located in `app/utils/common.ts`:
 
-| Function | Purpose |
-|----------|---------|
-| `uint8ArrayToBase64Url()` | Convert Uint8Array to base64url string |
-| `base64UrlToBase64()` | Convert base64url to standard Base64 with padding |
-| `base64UrlToUint8Array()` | Convert base64url to Uint8Array |
-| `base64UrlDecode()` | Convert base64url to UTF-8 string |
+| Function                     | Purpose                                         |
+| ---------------------------- | ----------------------------------------------- |
+| `uint8ArrayToBase64Url()`    | Convert Uint8Array to base64url string          |
+| `base64UrlEncode()`          | Encode UTF-8 string to base64url                |
+| `binaryStringToUint8Array()` | Convert binary string (from atob) to Uint8Array |
+| `base64UrlToUint8Array()`    | Convert base64url to Uint8Array                 |
+| `base64UrlDecode()`          | Convert base64url to UTF-8 string               |
+| `pemToArrayBuffer()`         | Strip PEM headers and decode base64 content     |
 
 Located in `app/utils/encode.ts`:
 
-| Function | Purpose |
-|----------|---------|
+| Function                | Purpose                                    |
+| ----------------------- | ------------------------------------------ |
 | `importRSAPrivateKey()` | Import RSA private key for signing (RS256) |
-| `importECPrivateKey()` | Import EC private key for signing (ES256) |
-| `pemToArrayBuffer()` | Strip PEM headers and decode base64 content |
-| `derToRaw()` | Convert ECDSA signatures from DER to raw format |
+| `importECPrivateKey()`  | Import EC private key for signing (ES256)  |
+| `encodeJWT()`           | Create and sign a JWT token                |
 
 Located in `app/utils/decode.ts`:
 
-| Function | Purpose |
-|----------|---------|
-| `importRSAPublicKey()` | Import RSA public key for verification (RS256) |
-| `importECPublicKey()` | Import EC public key for verification (ES256) |
-| `rawToDer()` | Convert ECDSA signatures from raw to DER format |
-| `decodeJWT()` | Decode JWT token into header, payload, signature |
-| `verifyJWTSignature()` | Verify JWT signature using provided key |
+| Function               | Purpose                                          |
+| ---------------------- | ------------------------------------------------ |
+| `importRSAPublicKey()` | Import RSA public key for verification (RS256)   |
+| `importECPublicKey()`  | Import EC public key for verification (ES256)    |
+| `decodeJWT()`          | Decode JWT token into header, payload, signature |
+| `verifyJWTSignature()` | Verify JWT signature using provided key          |
+
+### Technical Notes
+
+**ECDSA Signature Format:**
+
+- Web Crypto API uses raw R||S format (IEEE P1363) for ECDSA signatures
+- JWT specification also uses raw R||S format (64 bytes for P-256)
+- No DER/raw conversion is needed between Web Crypto and JWT
+- Some other libraries (like OpenSSL) use DER format, but browsers do not
