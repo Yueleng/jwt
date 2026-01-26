@@ -232,11 +232,11 @@ The signature is the cryptographic proof that the token was created by someone w
 
 **Algorithm-specific signing:**
 
-| Algorithm | Signing Process                                                                           |
-| --------- | ----------------------------------------------------------------------------------------- |
-| **HS256** | `HMAC-SHA256(data, secret)` → symmetric, same key for sign/verify                         |
-| **RS256** | `RSASSA-PKCS1-v1_5.sign(data, privateKey)` → asymmetric, private key signs                |
-| **ES256** | `ECDSA-SHA256.sign(data, privateKey)` → asymmetric, private key signs, DER→raw conversion |
+| Algorithm | Signing Process                                                                          |
+| --------- | ---------------------------------------------------------------------------------------- |
+| **HS256** | `HMAC-SHA256(data, secret)` → symmetric, same key for sign/verify                        |
+| **RS256** | `RSASSA-PKCS1-v1_5.sign(data, privateKey)` → asymmetric, private key signs               |
+| **ES256** | `ECDSA-SHA256.sign(data, privateKey)` → asymmetric, private key signs, raw R\|\|S format |
 
 ---
 
@@ -318,33 +318,26 @@ Process:
      privateKey,
      signingInputBytes
    )
-4. Output: DER-encoded signature (variable length, ~70-72 bytes)
+4. Output: 64-byte raw signature (R || S format)
+   - R: 32 bytes (first half)
+   - S: 32 bytes (second half)
+   - This is the same format JWT uses, so no conversion needed!
 
-   DER format structure:
-   0x30 [total-length]
-     0x02 [r-length] [r-value]
-     0x02 [s-length] [s-value]
-
-5. ⚠️ CRITICAL: Convert DER to raw format for JWT
-   - Extract r and s values from DER structure
-   - Pad each to 32 bytes (P-256)
-   - Concatenate: rawSignature = r (32 bytes) + s (32 bytes)
-   - Total: 64 bytes
-
-6. Encode to base64url: 64-byte raw signature becomes the third part
+5. Encode to base64url: 64-byte raw signature becomes the third part
 ```
 
 **Key requirements:**
 
 - **Signing**: EC private key for P-256 curve (PKCS#8 format)
 - **Verification**: EC public key for P-256 curve (SPKI format)
-- Signature size: 64 bytes (raw), much smaller than RS256's 256 bytes
+- Signature size: 64 bytes (raw R||S), much smaller than RS256's 256 bytes
 
-**Why DER→Raw conversion?**
+**Note on signature format:**
 
-- Web Crypto API produces DER-encoded signatures (ASN.1 format)
-- JWT specification requires raw concatenation of R and S values
-- Without conversion, verification will fail
+- Web Crypto API uses raw R||S format (IEEE P1363) for ECDSA
+- JWT specification also uses raw R||S format
+- No conversion is needed between Web Crypto and JWT!
+- Some other libraries (like OpenSSL) use DER format, but browsers do not
 
 **PEM format example:**
 
@@ -413,7 +406,7 @@ Verification ensures the token hasn't been tampered with:
 3. Verify signature using algorithm and key
    - HS256: HMAC-SHA256(data, secret) == decodedSignature
    - RS256: RSA.verify(data, publicKey, signature)
-   - ES256: ECDSA.verify(data, publicKey, rawToDer(signature))
+   - ES256: ECDSA.verify(data, publicKey, signature)
    ↓
 4. Return verified: true/false
 ```
