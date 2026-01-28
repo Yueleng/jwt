@@ -112,15 +112,21 @@ export default function JWTDecoder() {
         </div>
         <div className="flex items-center gap-2 mt-4">
           {/* Signature verification badge */}
-          {verification && (
+          {decoded?.isValid && (
             <span
               className={`px-3 py-1 rounded-full text-sm font-medium ${
-                verification.verified ? "badge-success" : "badge-error"
+                verification?.verified
+                  ? "badge-success"
+                  : verification
+                    ? "badge-error"
+                    : "badge-warning"
               }`}
             >
-              {verification.verified
+              {verification?.verified
                 ? "✓ Signature Verified"
-                : "✗ Invalid Signature"}
+                : verification
+                  ? "✗ Invalid Signature"
+                  : "⚠ Not Verified"}
             </span>
           )}
           {/* JWT structure badge */}
@@ -268,15 +274,21 @@ export default function JWTDecoder() {
                 </div>
               </div>
               {/* Verification status indicator */}
-              {verification && !isVerifying && (
+              {!isVerifying && (
                 <span
                   className={`text-xs px-2 py-1 rounded ${
-                    verification.verified
+                    verification?.verified
                       ? "bg-[var(--success-color)]/20 text-[var(--success-color)]"
-                      : "bg-[var(--error-color)]/20 text-[var(--error-color)]"
+                      : verification
+                        ? "bg-[var(--error-color)]/20 text-[var(--error-color)]"
+                        : "bg-[var(--warning-color)]/20 text-[var(--warning-color)]"
                   }`}
                 >
-                  {verification.verified ? "✓ Verified" : "✗ Invalid"}
+                  {verification?.verified
+                    ? "✓ Verified"
+                    : verification
+                      ? "✗ Invalid"
+                      : "⚠ Not Verified"}
                 </span>
               )}
               {isVerifying && (

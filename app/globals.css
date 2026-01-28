@@ -10,6 +10,7 @@
   --signature-color: #38bdf8;
   --success-color: #238636;
   --error-color: #da3633;
+  --warning-color: #d29922;
   --muted: #8b949e;
 }
 
@@ -150,6 +151,12 @@ body {
   background: rgba(139, 148, 158, 0.2);
   border: 1px solid var(--muted);
   color: var(--muted);
+}
+
+.badge-warning {
+  background: rgba(210, 153, 34, 0.2);
+  border: 1px solid var(--warning-color);
+  color: var(--warning-color);
 }
 
 /* JSON syntax highlighting */
