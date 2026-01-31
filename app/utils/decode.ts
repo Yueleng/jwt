@@ -128,12 +128,12 @@ export async function verifyJWTSignature(
     return { verified: false, error: "Invalid JWT structure" };
   }
 
-  const [headerB64, payloadB64, signatureB64] = parts;
+  const [headerB64Url, payloadB64Url, signatureB64Url] = parts;
 
   // Decode header to check algorithm
   let header: Record<string, unknown>;
   try {
-    const headerJson = base64UrlDecode(headerB64);
+    const headerJson = base64UrlDecode(headerB64Url);
     header = JSON.parse(headerJson);
   } catch {
     return { verified: false, error: "Invalid header" };
@@ -152,10 +152,10 @@ export async function verifyJWTSignature(
 
   try {
     // The data to verify is "header.payload"
-    const dataToVerify = `${headerB64}.${payloadB64}`;
+    const dataToVerify = `${headerB64Url}.${payloadB64Url}`;
     const encoder = new TextEncoder();
     const dataBytes = encoder.encode(dataToVerify);
-    const signatureBytes = base64UrlToUint8Array(signatureB64);
+    const signatureBytes = base64UrlToUint8Array(signatureB64Url);
 
     let isValid = false;
 
@@ -179,7 +179,7 @@ export async function verifyJWTSignature(
       const computedSignature = uint8ArrayToBase64Url(
         new Uint8Array(signatureBuffer),
       );
-      isValid = computedSignature === signatureB64;
+      isValid = computedSignature === signatureB64Url;
     } else if (algorithm === "RS256") {
       // RSA-SHA256: Use public key to verify
       const publicKey = await importRSAPublicKey(key);

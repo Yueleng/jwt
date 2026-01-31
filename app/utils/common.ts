@@ -55,9 +55,7 @@ function base64UrlToBase64(base64url: string): string {
 /**
  * Converts a "binary string" (from atob) to a Uint8Array.
  */
-export function binaryStringToUint8Array(
-  binary: string,
-): Uint8Array<ArrayBuffer> {
+function binaryStringToUint8Array(binary: string): Uint8Array<ArrayBuffer> {
   return Uint8Array.from(binary, (c) => c.charCodeAt(0));
 }
 /**
